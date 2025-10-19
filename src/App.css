@@ -164,6 +164,11 @@ textarea.form-control {
   font-family: inherit;
 }
 
+select.form-control {
+  cursor: pointer;
+  background-color: white;
+}
+
 .input-group {
   display: flex;
   gap: 10px;

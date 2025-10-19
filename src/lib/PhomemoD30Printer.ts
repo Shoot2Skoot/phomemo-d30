@@ -78,16 +78,27 @@ export class PhomemoD30Printer {
   /**
    * Get header command sequence
    *
-   * Protocol based on M02 (D30 likely uses similar):
-   * - ESC @ (0x1b 0x40): Initialize printer
-   * - ESC a (0x1b 0x61): Select justification (1 = centered)
-   * - Custom Phomemo commands (0x1f 0x11)
+   * Based on M110/M120/M220 protocol from phomemo-tools
+   * These printers (and likely D30) support media type settings
    */
-  private getHeaderData(): Uint8Array {
+  private getHeaderData(mediaType: 'gaps' | 'continuous' | 'marks' = 'gaps'): Uint8Array {
+    let mediaCode: number;
+    switch (mediaType) {
+      case 'gaps':
+        mediaCode = 0x0a; // Label with gaps (default)
+        break;
+      case 'continuous':
+        mediaCode = 0x0b; // Continuous
+        break;
+      case 'marks':
+        mediaCode = 0x26; // Label with marks
+        break;
+    }
+
     return new Uint8Array([
-      0x1b, 0x40,       // ESC @ - Initialize printer
-      0x1b, 0x61, 0x01, // ESC a 1 - Center justification
-      0x1f, 0x11, 0x02, 0x04 // Phomemo-specific initialization
+      0x1b, 0x4e, 0x0d, 0x05,  // Print Speed (5 = Fast)
+      0x1b, 0x4e, 0x04, 0x0f,  // Print Density (0x0f = max)
+      0x1f, 0x11, mediaCode    // Media Type
     ]);
   }
 
@@ -119,23 +130,34 @@ export class PhomemoD30Printer {
   /**
    * Get footer command sequence
    *
-   * KEY FIX: The original code used ESC d (feed n lines) which caused
-   * the printer to feed extra paper (120mm total).
+   * Based on M110/M120/M220 protocol from phomemo-tools
+   * This is what those printers use to end a print job
    *
-   * New approach based on phomemo-tools M02 protocol:
-   * - ESC d with minimal feed (or none)
-   * - Phomemo-specific end commands
-   *
-   * Alternative approaches to test:
-   * 1. Minimal feed: 0x1b 0x64 0x01 (feed 1 line only)
-   * 2. No feed: Remove ESC d entirely
-   * 3. Use only Phomemo end sequence
+   * @param extraFeedMm - Additional mm to feed after printing (for easy tear-off)
    */
-  private getFooterData(feedLines: number = 2): Uint8Array {
+  private getFooterData(extraFeedMm: number = 0): Uint8Array {
+    const footer = [
+      0x1f, 0xf0, 0x05, 0x00,  // Phomemo end sequence 1
+      0x1f, 0xf0, 0x03, 0x00   // Phomemo end sequence 2
+    ];
+
+    // Add extra feed if requested (convert mm to lines, ~0.125mm per line for 203dpi)
+    if (extraFeedMm > 0) {
+      const feedLines = Math.round(extraFeedMm * 8); // 8 pixels per mm
+      footer.push(0x1b, 0x64, feedLines);  // ESC d n - Feed n lines
+    }
+
+    return new Uint8Array(footer);
+  }
+
+  /**
+   * Alternative footer with NO extra feed
+   * Use this if the standard footer still causes issues
+   */
+  private getFooterDataNoFeed(): Uint8Array {
     return new Uint8Array([
-      // Option 1: Minimal feed (2 lines as in phomemo-tools)
-      0x1b, 0x64, feedLines,  // ESC d n - Feed n lines
-      0x1b, 0x64, feedLines,  // ESC d n - Feed n lines (repeated in original protocol)
+      // Try form feed or cut command to stop the printer
+      0x1b, 0x64, 0x00,  // ESC d 0 - Feed 0 lines (might trigger cut/stop)
 
       // Phomemo-specific end sequence (from phomemo-tools)
       0x1f, 0x11, 0x08,
@@ -146,17 +168,70 @@ export class PhomemoD30Printer {
   }
 
   /**
-   * Alternative footer with NO extra feed
-   * Use this if the standard footer still causes issues
+   * Alternative footer 2 - Try form feed
    */
-  private getFooterDataNoFeed(): Uint8Array {
+  private getFooterDataFormFeed(): Uint8Array {
     return new Uint8Array([
-      // Only Phomemo-specific end sequence, no ESC d commands
+      0x0c,  // FF - Form feed (page eject)
+
+      // Phomemo-specific end sequence
       0x1f, 0x11, 0x08,
       0x1f, 0x11, 0x0e,
       0x1f, 0x11, 0x07,
       0x1f, 0x11, 0x09
     ]);
+  }
+
+  /**
+   * Alternative footer 3 - Try GS V (cut)
+   */
+  private getFooterDataCut(): Uint8Array {
+    return new Uint8Array([
+      0x1d, 0x56, 0x00,  // GS V - Cut paper (full cut)
+
+      // Phomemo-specific end sequence
+      0x1f, 0x11, 0x08,
+      0x1f, 0x11, 0x0e,
+      0x1f, 0x11, 0x07,
+      0x1f, 0x11, 0x09
+    ]);
+  }
+
+  /**
+   * Alternative footer 4 - EXACT match to original HTML code
+   * This is what was in the working example (phomemo-tool-example.py line 565)
+   */
+  private getFooterDataSimple(): Uint8Array {
+    return new Uint8Array([
+      0x1b, 0x64, 0x00  // ESC d 0 - Feed 0 lines ONLY, no Phomemo sequence
+    ]);
+  }
+
+  /**
+   * Alternative footer 5 - Try ESC @ again to reset
+   */
+  private getFooterDataReset(): Uint8Array {
+    return new Uint8Array([
+      0x1b, 0x40  // ESC @ - Initialize printer (might stop current job)
+    ]);
+  }
+
+  /**
+   * Alternative footer 6 - Try multiple end commands
+   */
+  private getFooterDataMulti(): Uint8Array {
+    return new Uint8Array([
+      0x1b, 0x64, 0x00,  // ESC d 0
+      0x1b, 0x40,        // ESC @ - Reset
+      0x0c               // Form feed
+    ]);
+  }
+
+  /**
+   * Alternative footer 7 - NO footer at all
+   */
+  private getFooterDataNone(): Uint8Array {
+    return new Uint8Array([]);
   }
 
   /**
@@ -200,13 +275,15 @@ export class PhomemoD30Printer {
    * @param canvas - HTML canvas element containing the label design
    * @param widthMm - Label width in millimeters (actual physical dimension)
    * @param heightMm - Label height in millimeters (actual physical dimension)
-   * @param useNoFeedFooter - Use footer without extra feed commands (for testing)
+   * @param footerMode - Which footer command sequence to use
    */
   async print(
     canvas: HTMLCanvasElement,
     widthMm: number,
     heightMm: number,
-    useNoFeedFooter: boolean = false
+    footerMode: 'standard' | 'nofeed' | 'formfeed' | 'cut' | 'simple' | 'reset' | 'multi' | 'none' = 'standard',
+    mediaType: 'gaps' | 'continuous' | 'marks' = 'gaps',
+    extraFeedMm: number = 0
   ): Promise<PrinterDebugInfo> {
     if (!this.characteristic) {
       throw new Error('Not connected to printer');
@@ -220,8 +297,35 @@ export class PhomemoD30Printer {
       const bytesPerRow = Math.ceil(canvas.width / 8);
 
       // Generate debug info
-      const header = this.getHeaderData();
-      const footer = useNoFeedFooter ? this.getFooterDataNoFeed() : this.getFooterData();
+      const header = this.getHeaderData(mediaType);
+      let footer: Uint8Array;
+      switch (footerMode) {
+        case 'simple':
+          footer = this.getFooterDataSimple();
+          break;
+        case 'reset':
+          footer = this.getFooterDataReset();
+          break;
+        case 'multi':
+          footer = this.getFooterDataMulti();
+          break;
+        case 'none':
+          footer = this.getFooterDataNone();
+          break;
+        case 'nofeed':
+          footer = this.getFooterDataNoFeed();
+          break;
+        case 'formfeed':
+          footer = this.getFooterDataFormFeed();
+          break;
+        case 'cut':
+          footer = this.getFooterDataCut();
+          break;
+        case 'standard':
+        default:
+          footer = this.getFooterData(extraFeedMm);
+          break;
+      }
 
       const debugInfo: PrinterDebugInfo = {
         canvasWidth: canvas.width,

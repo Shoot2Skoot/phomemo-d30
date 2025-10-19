@@ -17,6 +17,8 @@ function App() {
     heightMm: 12,
     pixelsPerMm: 8
   });
+  const [autoWidth, setAutoWidth] = useState(true);
+  const [minWidthMm, setMinWidthMm] = useState(20);
 
   // Text tab state
   const [text, setText] = useState('Hello World!');
@@ -40,7 +42,9 @@ function App() {
   const [statusMessage, setStatusMessage] = useState('');
   const [statusType, setStatusType] = useState<'info' | 'success' | 'error'>('info');
   const [debugInfo, setDebugInfo] = useState<PrinterDebugInfo | null>(null);
-  const [useNoFeedFooter, setUseNoFeedFooter] = useState(false);
+  const [footerMode, setFooterMode] = useState<'standard' | 'nofeed' | 'formfeed' | 'cut' | 'simple' | 'reset' | 'multi' | 'none'>('standard');
+  const [mediaType, setMediaType] = useState<'gaps' | 'continuous' | 'marks'>('continuous');
+  const [extraFeedMm, setExtraFeedMm] = useState(2);
 
   // Initialize canvas renderer and printer
   useEffect(() => {
@@ -57,12 +61,55 @@ function App() {
   // Update preview when inputs change
   useEffect(() => {
     updatePreview();
-  }, [activeTab, text, fontSize, selectedIcon, iconLabel, barcodeData, qrData, imageFile, dimensions]);
+  }, [activeTab, text, fontSize, selectedIcon, iconLabel, barcodeData, qrData, imageFile, dimensions, autoWidth]);
+
+  const calculateAutoWidth = (): number => {
+    if (!canvasRef.current) return dimensions.widthMm;
+
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return dimensions.widthMm;
+
+    let contentWidthPx = 0;
+
+    switch (activeTab) {
+      case 'text':
+        ctx.font = `${fontSize}px Arial`;
+        const lines = text.split('\n');
+        contentWidthPx = Math.max(...lines.map(line => ctx.measureText(line).width));
+        break;
+      case 'icons':
+      case 'qr':
+        // Icons and QR codes are roughly square, use height as width
+        contentWidthPx = dimensions.heightMm * dimensions.pixelsPerMm;
+        break;
+      case 'barcode':
+        // Barcodes need more width, estimate based on data length
+        contentWidthPx = Math.max(barcodeData.length * 12, 100);
+        break;
+      case 'image':
+        // For images, use minimum width
+        contentWidthPx = minWidthMm * dimensions.pixelsPerMm;
+        break;
+    }
+
+    // Add 20% padding and convert to mm
+    const widthMm = Math.ceil((contentWidthPx * 1.2) / dimensions.pixelsPerMm);
+
+    // Ensure minimum width
+    return Math.max(widthMm, minWidthMm);
+  };
 
   const updatePreview = async () => {
     if (!rendererRef.current) return;
 
-    rendererRef.current.setDimensions(dimensions);
+    // Calculate auto width if enabled
+    let effectiveDimensions = dimensions;
+    if (autoWidth) {
+      const calculatedWidth = calculateAutoWidth();
+      effectiveDimensions = { ...dimensions, widthMm: calculatedWidth };
+    }
+
+    rendererRef.current.setDimensions(effectiveDimensions);
 
     try {
       switch (activeTab) {
@@ -103,12 +150,17 @@ function App() {
       showStatus('Connecting to printer...', 'info');
       await printerRef.current.connect();
 
+      // Use auto-calculated width if enabled
+      const printWidth = autoWidth ? calculateAutoWidth() : dimensions.widthMm;
+
       showStatus('Printing...', 'info');
       const debug = await printerRef.current.print(
         canvasRef.current,
-        dimensions.widthMm,
+        printWidth,
         dimensions.heightMm,
-        useNoFeedFooter
+        footerMode,
+        mediaType,
+        extraFeedMm
       );
 
       setDebugInfo(debug);
@@ -274,7 +326,38 @@ function App() {
 
             <div className="settings-panel">
               <div className="settings-title">📐 Label Dimensions</div>
-              <div className="input-group">
+
+              <div className="form-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={autoWidth}
+                    onChange={(e) => setAutoWidth(e.target.checked)}
+                  />
+                  {' '}Auto-size width to content
+                </label>
+                <small style={{ display: 'block', marginTop: '4px' }}>
+                  Automatically calculates label width based on content size.
+                </small>
+              </div>
+
+              {autoWidth ? (
+                <div className="form-group">
+                  <label htmlFor="min-width">Minimum Width (mm)</label>
+                  <input
+                    type="number"
+                    id="min-width"
+                    className="form-control"
+                    value={minWidthMm}
+                    onChange={(e) => setMinWidthMm(Number(e.target.value))}
+                    min="10"
+                    max="100"
+                  />
+                  <small style={{ display: 'block', marginTop: '4px' }}>
+                    Calculated width: ~{calculateAutoWidth()}mm
+                  </small>
+                </div>
+              ) : (
                 <div className="form-group">
                   <label htmlFor="label-width">Width (mm)</label>
                   <input
@@ -287,18 +370,19 @@ function App() {
                     max="100"
                   />
                 </div>
-                <div className="form-group">
-                  <label htmlFor="label-height">Height (mm)</label>
-                  <input
-                    type="number"
-                    id="label-height"
-                    className="form-control"
-                    value={dimensions.heightMm}
-                    onChange={(e) => setDimensions({ ...dimensions, heightMm: Number(e.target.value) })}
-                    min="10"
-                    max="100"
-                  />
-                </div>
+              )}
+
+              <div className="form-group">
+                <label htmlFor="label-height">Height (mm)</label>
+                <input
+                  type="number"
+                  id="label-height"
+                  className="form-control"
+                  value={dimensions.heightMm}
+                  onChange={(e) => setDimensions({ ...dimensions, heightMm: Number(e.target.value) })}
+                  min="10"
+                  max="100"
+                />
               </div>
             </div>
 
@@ -328,16 +412,58 @@ function App() {
               </div>
 
               <div className="form-group">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={useNoFeedFooter}
-                    onChange={(e) => setUseNoFeedFooter(e.target.checked)}
-                  />
-                  {' '}Use No-Feed Footer (experimental fix for 120mm issue)
-                </label>
+                <label htmlFor="media-type">Media Type</label>
+                <select
+                  id="media-type"
+                  className="form-control"
+                  value={mediaType}
+                  onChange={(e) => setMediaType(e.target.value as any)}
+                >
+                  <option value="gaps">Label with Gaps (standard labels)</option>
+                  <option value="continuous">Continuous (no gaps)</option>
+                  <option value="marks">Label with Black Marks</option>
+                </select>
                 <small style={{ display: 'block', marginTop: '4px' }}>
-                  Try this if your labels still feed extra paper after printing.
+                  Select the type of label roll you're using. "Label with Gaps" is most common for D30.
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="extra-feed">
+                  Extra Feed After Label: <span>{extraFeedMm}mm</span>
+                </label>
+                <input
+                  type="range"
+                  id="extra-feed"
+                  className="slider"
+                  min="0"
+                  max="20"
+                  value={extraFeedMm}
+                  onChange={(e) => setExtraFeedMm(Number(e.target.value))}
+                />
+                <small>Add extra paper feed after printing for easier tearing. 0mm = no extra feed.</small>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="footer-mode">Footer Command Mode</label>
+                <select
+                  id="footer-mode"
+                  className="form-control"
+                  value={footerMode}
+                  onChange={(e) => setFooterMode(e.target.value as any)}
+                >
+                  <option value="standard">⭐ Standard (M110 protocol - try this first!)</option>
+                  <option value="none">None (NO footer command)</option>
+                  <option value="reset">Reset (ESC @ to reset printer)</option>
+                  <option value="multi">Multi (ESC d 0 + ESC @ + FF)</option>
+                  <option value="simple">Simple (ESC d 0 only)</option>
+                  <option value="nofeed">No Feed (ESC d 0 + Phomemo M02)</option>
+                  <option value="formfeed">Form Feed (FF + Phomemo M02)</option>
+                  <option value="cut">Cut (GS V + Phomemo M02)</option>
+                </select>
+                <small style={{ display: 'block', marginTop: '4px' }}>
+                  <strong>Start with "Standard"</strong> - uses M110/M120/M220 protocol footer (0x1f 0xf0 sequences).
+                  This should match the D30's protocol better than M02.
                 </small>
               </div>
             </div>
@@ -383,7 +509,13 @@ function App() {
             </div>
             <div className="preview-info">
               <p>📍 Label feeds vertically through printer</p>
-              <p>📏 Canvas: {rendererRef.current?.getDimensionsInfo() || '-'}</p>
+              <p>📏 Pixels: {rendererRef.current?.getDimensionsInfo() || '-'}</p>
+              <p>📐 Size: {(() => {
+                const width = autoWidth ? calculateAutoWidth() : dimensions.widthMm;
+                const widthInches = (width / 25.4).toFixed(2);
+                const heightInches = (dimensions.heightMm / 25.4).toFixed(2);
+                return `${width}×${dimensions.heightMm}mm (${widthInches}×${heightInches}″)`;
+              })()}</p>
             </div>
           </div>
         </div>
