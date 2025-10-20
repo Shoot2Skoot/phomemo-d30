@@ -198,9 +198,6 @@ function App() {
     if (!printerRef.current || !canvasRef.current) return;
 
     try {
-      showStatus('Connecting to printer...', 'info');
-      await printerRef.current.connect();
-
       // Use auto-calculated width if enabled
       const printWidth = autoWidth ? calculateAutoWidth() : dimensions.widthMm;
 
@@ -652,12 +649,23 @@ function App() {
               })()} • <span style={{color: '#5abdff'}}>Margins Shown with Blue</span></p>
 
               <div className="button-group">
-                <button className="btn btn-primary" onClick={handlePrint}>
-                  🖨️ {printerConnected ? 'Print' : 'Connect & Print'}
-                </button>
-                <button className="btn btn-secondary" onClick={handleTestPattern}>
-                  🧪 Test Pattern
-                </button>
+                {!printerConnected ? (
+                  <button className="btn btn-connect" onClick={async () => {
+                    try {
+                      showStatus('Connecting to printer...', 'info');
+                      await printerRef.current?.connect();
+                      showStatus('Connected!', 'success');
+                    } catch (error) {
+                      showStatus(`Connection error: ${error}`, 'error');
+                    }
+                  }}>
+                    🔌 Connect Printer
+                  </button>
+                ) : (
+                  <button className="btn btn-print" onClick={handlePrint}>
+                    🖨️ Print Label
+                  </button>
+                )}
               </div>
             </div>
           </div>
