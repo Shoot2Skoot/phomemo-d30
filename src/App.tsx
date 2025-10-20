@@ -658,7 +658,7 @@ function App() {
                 const widthInches = (width / 25.4).toFixed(2);
                 const labelHeightInches = (labelHeightMm / 25.4).toFixed(2);
                 return `${width}×${labelHeightMm}mm (${widthInches}×${labelHeightInches}″)`;
-              })()} • <span style={{color: '#5abdff'}}>Blue = printable, Gray = margins</span></p>
+              })()} • <span style={{color: '#5abdff'}}>Margins Shown with Blue</span></p>
             </div>
           </div>
         </div>
