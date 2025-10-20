@@ -27,7 +27,7 @@ export function IconSearch({ onIconSelect }: IconSearchProps) {
     setLoading(true);
     try {
       const collections = library === 'all'
-        ? ['fa-solid', 'lucide', 'ph']
+        ? ['fa-solid', 'fa-regular', 'lucide', 'ph']
         : library === 'fa'
           ? ['fa-solid', 'fa-regular']
           : [library];
