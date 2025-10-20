@@ -106,7 +106,6 @@ export class CanvasRenderer {
 
     // Calculate actual text bounds for proper centering
     const lineHeight = options.fontSize * 1.2;
-    const totalHeight = lines.length * lineHeight;
 
     // Measure the actual bounds of all text to center based on actual content
     let maxAscent = 0;
@@ -165,32 +164,6 @@ export class CanvasRenderer {
     this.ctx.restore();
   }
 
-  /**
-   * Word wrap text to fit within maximum width
-   */
-  private wrapText(text: string, maxWidth: number): string[] {
-    const words = text.split(" ");
-    const lines: string[] = [];
-    let currentLine = "";
-
-    for (const word of words) {
-      const testLine = currentLine + (currentLine ? " " : "") + word;
-      const metrics = this.ctx.measureText(testLine);
-
-      if (metrics.width > maxWidth && currentLine) {
-        lines.push(currentLine);
-        currentLine = word;
-      } else {
-        currentLine = testLine;
-      }
-    }
-
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-
-    return lines.length > 0 ? lines : [""];
-  }
 
   /**
    * Draw SVG icon on the canvas with optional label

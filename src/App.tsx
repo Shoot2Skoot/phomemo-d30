@@ -249,11 +249,6 @@ function App() {
     }
   };
 
-  const handleTestPattern = () => {
-    if (!rendererRef.current) return;
-    rendererRef.current.drawTestPattern();
-    showStatus('Test pattern ready. Measure the printed output to calibrate.', 'info');
-  };
 
   const showStatus = (message: string, type: 'info' | 'success' | 'error') => {
     setStatusMessage(message);

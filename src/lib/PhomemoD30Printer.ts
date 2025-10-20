@@ -365,7 +365,7 @@ export class PhomemoD30Printer {
       console.log('Print debug info:', debugInfo);
 
       // 1. Send header
-      await this.characteristic.writeValueWithResponse(header);
+      await this.characteristic.writeValueWithResponse(header as BufferSource);
       await this.delay(50);
 
       // 2. Send image data in blocks (max 255 lines per block)
@@ -378,7 +378,7 @@ export class PhomemoD30Printer {
 
         // Send block marker
         const blockMarker = this.getBlockMarker(bytesPerRow, linesToSend);
-        await this.characteristic.writeValueWithResponse(blockMarker);
+        await this.characteristic.writeValueWithResponse(blockMarker as BufferSource);
         await this.delay(30);
 
         // Send image data for this block in chunks
@@ -401,7 +401,7 @@ export class PhomemoD30Printer {
 
       // 3. Send footer
       await this.delay(50);
-      await this.characteristic.writeValueWithResponse(footer);
+      await this.characteristic.writeValueWithResponse(footer as BufferSource);
 
       console.log('Print complete!');
       this.setStatus('connected');
