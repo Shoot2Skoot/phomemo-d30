@@ -423,16 +423,19 @@ export class CanvasRenderer {
         drawWidth = scaledSize * aspectRatio;
       }
 
+      // Add a small gap between text and icon (reduced from implicit spacing)
+      const gap = drawWidth * 0.05; // 5% of icon width as gap
+
       // Now calculate total width with actual icon dimensions
-      const totalWidth = textWidth + drawWidth;
+      const totalWidth = textWidth + gap + drawWidth;
       const startX = -totalWidth / 2;
 
       // Draw text (using exact same Y position as drawText for single line)
       this.ctx.textAlign = 'left';
       this.ctx.fillText(text, startX, verticalOffset);
 
-      // Draw icon after text, centered vertically (independent of text)
-      const iconX = startX + textWidth;
+      // Draw icon after text with gap, centered vertically (independent of text)
+      const iconX = startX + textWidth + gap;
       const iconY = -drawHeight / 2;
 
       this.ctx.drawImage(img, iconX, iconY, drawWidth, drawHeight);
@@ -450,7 +453,7 @@ export class CanvasRenderer {
   /**
    * Detect icon library and return scale factor
    * Lucide: 92/120 = 0.7667
-   * Phosphor: 97/120 = 0.8083
+   * Phosphor: 100/120 = 0.8333 (increased from 97/120)
    * Font Awesome: 85/120 = 0.7083
    */
   private getIconScaleFactor(svgContent: string): number {
@@ -460,7 +463,7 @@ export class CanvasRenderer {
       return 0.7667;
     } else if (svgContent.includes('phosphor') || svgContent.includes('weight=')) {
       // Phosphor icons often have weight attribute
-      return 0.8083;
+      return 0.8333;
     } else if (svgContent.includes('font-awesome') || svgContent.includes('fa-')) {
       // Font Awesome icons
       return 0.7083;
