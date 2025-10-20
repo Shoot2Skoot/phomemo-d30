@@ -660,8 +660,8 @@ function App() {
                 const labelHeightInches = (labelHeightMm / 25.4).toFixed(2);
                 return `${width}×${labelHeightMm}mm (${widthInches}×${labelHeightInches}″)`;
               })()}</p>
-              <p style={{fontSize: '0.85rem', color: '#9333ea'}}>
-                💡 Purple border shows printable area, gray areas are margins
+              <p style={{fontSize: '0.85rem', color: '#5abdff'}}>
+                💡 Blue border shows printable area, gray areas are margins
               </p>
             </div>
           </div>
