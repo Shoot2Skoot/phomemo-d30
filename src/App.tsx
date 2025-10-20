@@ -186,7 +186,7 @@ function App() {
           rendererRef.current.drawText({ text, fontSize, fontFamily: selectedFont.family });
           break;
         case 'texticon':
-          if (textIconIconSvg) {
+          if (textIconText || textIconIconSvg) {
             await rendererRef.current.drawTextWithIcon(
               textIconText,
               textIconFontSize,
@@ -252,9 +252,13 @@ function App() {
       setDebugInfo(debug);
       showStatus('Print complete!', 'success');
 
+      // Capture canvas preview
+      const previewDataUrl = canvasRef.current.toDataURL('image/png');
+
       // Save to print history
       const printJob: Omit<PrintHistoryItem, 'id' | 'timestamp'> = {
         tab: activeTab,
+        previewDataUrl,
         dimensions: { ...dimensions, widthMm: printWidth },
         autoWidth,
         footerMode,
@@ -834,6 +838,21 @@ function App() {
                               gap: '12px'
                             }}
                           >
+                            {item.previewDataUrl && (
+                              <div style={{ flexShrink: 0 }}>
+                                <img
+                                  src={item.previewDataUrl}
+                                  alt="Label preview"
+                                  style={{
+                                    width: '80px',
+                                    height: 'auto',
+                                    border: '1px solid #333',
+                                    background: 'white',
+                                    imageRendering: 'pixelated'
+                                  }}
+                                />
+                              </div>
+                            )}
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: '0.75rem', color: '#e5e5e5', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {getPreviewLabel(item)}
@@ -842,7 +861,7 @@ function App() {
                                 {new Date(item.timestamp).toLocaleString()} • {item.dimensions.widthMm}×{item.dimensions.heightMm}mm
                               </div>
                             </div>
-                            <div style={{ display: 'flex', gap: '6px' }}>
+                            <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                               <button
                                 className="btn"
                                 onClick={() => loadPrintJob(item)}

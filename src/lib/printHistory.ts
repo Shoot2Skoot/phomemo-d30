@@ -9,6 +9,9 @@ export interface PrintHistoryItem {
   timestamp: number;
   tab: 'text' | 'texticon' | 'icons' | 'barcode' | 'qr' | 'image';
 
+  // Preview image
+  previewDataUrl?: string;
+
   // Label dimensions
   dimensions: {
     widthMm: number;
