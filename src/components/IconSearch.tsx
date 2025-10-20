@@ -46,12 +46,15 @@ export function IconSearch({ onIconSelect }: IconSearchProps) {
             // Fetch SVG for each icon
             for (const iconName of searchData.icons.slice(0, 10)) {
               try {
+                // The iconName is just the name without collection prefix
+                // We need to construct the full icon ID: collection:iconName
+                const fullIconId = `${collection}:${iconName}`;
                 const svgResponse = await fetch(
-                  `https://api.iconify.design/${collection}/${iconName}.svg?color=currentColor`
+                  `https://api.iconify.design/${fullIconId}.svg?color=currentColor`
                 );
 
                 if (!svgResponse.ok) {
-                  console.error(`Failed to fetch ${iconName}: ${svgResponse.status}`);
+                  console.error(`Failed to fetch ${fullIconId}: ${svgResponse.status}`);
                   continue;
                 }
 
@@ -59,14 +62,14 @@ export function IconSearch({ onIconSelect }: IconSearchProps) {
 
                 // Verify we got valid SVG
                 if (!svgText || !svgText.includes('<svg')) {
-                  console.error(`Invalid SVG for ${iconName}`);
+                  console.error(`Invalid SVG for ${fullIconId}`);
                   continue;
                 }
 
                 const libraryType = collection.startsWith('fa-') ? 'fa' :
                                    collection === 'lucide' ? 'lucide' : 'ph';
 
-                console.log(`Loaded icon: ${collection}/${iconName}`);
+                console.log(`Loaded icon: ${fullIconId}`);
                 allResults.push({
                   name: iconName,
                   library: libraryType,
