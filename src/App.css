@@ -369,14 +369,21 @@ select.form-control option {
 .preview-info {
   background: #111;
   border-top: 1px solid #222;
-  padding: 10px 16px;
+  padding: 12px 16px;
   color: #666;
   font-size: 0.75rem;
 }
 
 .preview-info p {
-  margin-bottom: 2px;
+  margin-bottom: 12px;
   line-height: 1.5;
+}
+
+.preview-info .button-group {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
 .button-group {

@@ -602,15 +602,6 @@ function App() {
               </>)}
             </div>
 
-            <div className="button-group">
-              <button className="btn btn-primary" onClick={handlePrint}>
-                🖨️ {printerConnected ? 'Print' : 'Connect & Print'}
-              </button>
-              <button className="btn btn-secondary" onClick={handleTestPattern}>
-                🧪 Test Pattern
-              </button>
-            </div>
-
             {statusMessage && (
               <div className={`status-message ${statusType}`}>
                 {statusMessage}
@@ -659,6 +650,15 @@ function App() {
                 const labelHeightInches = (labelHeightMm / 25.4).toFixed(2);
                 return `${width}×${labelHeightMm}mm (${widthInches}×${labelHeightInches}″)`;
               })()} • <span style={{color: '#5abdff'}}>Margins Shown with Blue</span></p>
+
+              <div className="button-group">
+                <button className="btn btn-primary" onClick={handlePrint}>
+                  🖨️ {printerConnected ? 'Print' : 'Connect & Print'}
+                </button>
+                <button className="btn btn-secondary" onClick={handleTestPattern}>
+                  🧪 Test Pattern
+                </button>
+              </div>
             </div>
           </div>
         </div>
