@@ -127,6 +127,7 @@ body {
   padding: 16px;
   animation: none;
   min-width: 0;
+  order: 3;
 }
 
 @keyframes fadeIn {
