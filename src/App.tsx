@@ -5,6 +5,7 @@ import { iconLibrary } from './lib/icons';
 import { FontSelector } from './components/FontSelector';
 import { IconSearch } from './components/IconSearch';
 import { FontDefinition } from './lib/fonts';
+import { PrintHistoryItem, getPrintHistory, savePrintJob, deletePrintJob, clearPrintHistory, getPreviewLabel } from './lib/printHistory';
 import './App.css';
 
 type Tab = 'text' | 'texticon' | 'icons' | 'barcode' | 'qr' | 'image';
@@ -75,6 +76,10 @@ function App() {
   const [calibrationExpanded, setCalibrationExpanded] = useState(false);
   const [textIconStyleExpanded, setTextIconStyleExpanded] = useState(false);
 
+  // Print history state
+  const [printHistory, setPrintHistory] = useState<PrintHistoryItem[]>([]);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+
   // Initialize canvas renderer and printer
   useEffect(() => {
     if (canvasRef.current && !rendererRef.current) {
@@ -93,6 +98,9 @@ function App() {
 
       updatePreview();
     }
+
+    // Load print history from localStorage
+    setPrintHistory(getPrintHistory());
   }, []);
 
   // Update preview when inputs change
@@ -243,6 +251,53 @@ function App() {
 
       setDebugInfo(debug);
       showStatus('Print complete!', 'success');
+
+      // Save to print history
+      const printJob: Omit<PrintHistoryItem, 'id' | 'timestamp'> = {
+        tab: activeTab,
+        dimensions: { ...dimensions, widthMm: printWidth },
+        autoWidth,
+        footerMode,
+        mediaType,
+        extraFeedMm,
+      };
+
+      // Add tab-specific data
+      if (activeTab === 'text') {
+        printJob.text = text;
+        printJob.fontSize = fontSize;
+        printJob.selectedFont = selectedFont;
+      } else if (activeTab === 'texticon') {
+        printJob.textIconText = textIconText;
+        printJob.textIconFont = textIconFont;
+        printJob.textIconFontSize = textIconFontSize;
+        printJob.textIconIconSvg = textIconIconSvg;
+        printJob.textIconIconSize = textIconIconSize;
+        printJob.textIconAllCaps = textIconAllCaps;
+        printJob.textIconSmallCaps = textIconSmallCaps;
+        printJob.textIconItalic = textIconItalic;
+        printJob.textIconFontWeight = textIconFontWeight;
+      } else if (activeTab === 'icons') {
+        printJob.selectedIcon = selectedIcon ? { name: selectedIcon.name, svg: selectedIcon.svg } : undefined;
+        printJob.iconLabel = iconLabel;
+      } else if (activeTab === 'barcode') {
+        printJob.barcodeData = barcodeData;
+      } else if (activeTab === 'qr') {
+        printJob.qrData = qrData;
+      } else if (activeTab === 'image' && imageFile) {
+        // Convert image file to base64 for storage
+        const reader = new FileReader();
+        reader.onload = () => {
+          printJob.imageDataUrl = reader.result as string;
+          savePrintJob(printJob);
+          setPrintHistory(getPrintHistory());
+        };
+        reader.readAsDataURL(imageFile);
+        return; // Early return, history will be saved in onload
+      }
+
+      savePrintJob(printJob);
+      setPrintHistory(getPrintHistory());
     } catch (error) {
       showStatus(`Error: ${error}`, 'error');
       console.error(error);
@@ -257,6 +312,55 @@ function App() {
     if (type !== 'error') {
       setTimeout(() => setStatusMessage(''), 3000);
     }
+  };
+
+  const loadPrintJob = async (item: PrintHistoryItem) => {
+    // Switch to the appropriate tab
+    setActiveTab(item.tab);
+
+    // Load dimensions
+    setDimensions(item.dimensions);
+    setAutoWidth(item.autoWidth);
+
+    // Load printer settings
+    if (item.footerMode) setFooterMode(item.footerMode);
+    if (item.mediaType) setMediaType(item.mediaType);
+    if (item.extraFeedMm !== undefined) setExtraFeedMm(item.extraFeedMm);
+
+    // Load tab-specific data
+    if (item.tab === 'text' && item.text !== undefined) {
+      setText(item.text);
+      if (item.fontSize) setFontSize(item.fontSize);
+      if (item.selectedFont) setSelectedFont(item.selectedFont);
+    } else if (item.tab === 'texticon') {
+      if (item.textIconText !== undefined) setTextIconText(item.textIconText);
+      if (item.textIconFont) setTextIconFont(item.textIconFont);
+      if (item.textIconFontSize) setTextIconFontSize(item.textIconFontSize);
+      if (item.textIconIconSvg) setTextIconIconSvg(item.textIconIconSvg);
+      if (item.textIconIconSize) setTextIconIconSize(item.textIconIconSize);
+      if (item.textIconAllCaps !== undefined) setTextIconAllCaps(item.textIconAllCaps);
+      if (item.textIconSmallCaps !== undefined) setTextIconSmallCaps(item.textIconSmallCaps);
+      if (item.textIconItalic !== undefined) setTextIconItalic(item.textIconItalic);
+      if (item.textIconFontWeight) setTextIconFontWeight(item.textIconFontWeight);
+    } else if (item.tab === 'icons') {
+      if (item.selectedIcon) {
+        const icon = iconLibrary.find(i => i.name === item.selectedIcon?.name);
+        setSelectedIcon(icon || null);
+      }
+      if (item.iconLabel !== undefined) setIconLabel(item.iconLabel);
+    } else if (item.tab === 'barcode' && item.barcodeData) {
+      setBarcodeData(item.barcodeData);
+    } else if (item.tab === 'qr' && item.qrData) {
+      setQrData(item.qrData);
+    } else if (item.tab === 'image' && item.imageDataUrl) {
+      // Convert base64 back to File
+      const response = await fetch(item.imageDataUrl);
+      const blob = await response.blob();
+      const file = new File([blob], 'loaded-image.png', { type: blob.type });
+      setImageFile(file);
+    }
+
+    showStatus('Print job loaded from history', 'success');
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -685,6 +789,86 @@ function App() {
                 </small>
               </div>
               </>)}
+            </div>
+
+            <div className="settings-panel">
+              <div
+                className="settings-title"
+                onClick={() => setHistoryExpanded(!historyExpanded)}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span>{historyExpanded ? '▼' : '▶'}</span> 📜 Print History {printHistory.length > 0 && `(${printHistory.length})`}
+              </div>
+              {historyExpanded && (
+                <>
+                  {printHistory.length === 0 ? (
+                    <div style={{ padding: '16px 0', color: '#666', fontSize: '0.75rem', textAlign: 'center' }}>
+                      No print history yet. Print a label to see it here.
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+                        <button
+                          className="btn"
+                          onClick={() => {
+                            clearPrintHistory();
+                            setPrintHistory([]);
+                            showStatus('Print history cleared', 'info');
+                          }}
+                          style={{ fontSize: '0.65rem', padding: '6px 12px' }}
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '400px', overflowY: 'auto' }}>
+                        {printHistory.map(item => (
+                          <div
+                            key={item.id}
+                            style={{
+                              background: '#0d0d0d',
+                              border: '1px solid #222',
+                              padding: '12px',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              gap: '12px'
+                            }}
+                          >
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.75rem', color: '#e5e5e5', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {getPreviewLabel(item)}
+                              </div>
+                              <div style={{ fontSize: '0.65rem', color: '#666' }}>
+                                {new Date(item.timestamp).toLocaleString()} • {item.dimensions.widthMm}×{item.dimensions.heightMm}mm
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button
+                                className="btn"
+                                onClick={() => loadPrintJob(item)}
+                                style={{ fontSize: '0.65rem', padding: '6px 12px', whiteSpace: 'nowrap' }}
+                              >
+                                Load
+                              </button>
+                              <button
+                                className="btn"
+                                onClick={() => {
+                                  deletePrintJob(item.id);
+                                  setPrintHistory(getPrintHistory());
+                                  showStatus('Print job deleted', 'info');
+                                }}
+                                style={{ fontSize: '0.65rem', padding: '6px 12px', background: '#1a0d0d', color: '#f87171', borderColor: '#7f1d1d' }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
             </div>
 
             {statusMessage && (
