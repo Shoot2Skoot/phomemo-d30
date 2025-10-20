@@ -127,7 +127,6 @@ body {
   padding: 16px;
   animation: none;
   min-width: 0;
-  order: 10;
 }
 
 @keyframes fadeIn {
@@ -301,7 +300,7 @@ select.form-control option {
   display: flex;
   flex-direction: column;
   border-bottom: 1px solid #222;
-  order: 1;
+  order: -1;
   width: 100%;
   min-width: 0;
 }
@@ -387,7 +386,6 @@ select.form-control option {
   padding: 16px;
   background: #0a0a0a;
   border-bottom: 1px solid #222;
-  order: 2;
 }
 
 .btn {
@@ -445,7 +443,6 @@ select.form-control option {
   padding: 16px;
   margin-bottom: 16px;
   margin-top: 16px;
-  order: 4;
 }
 
 .settings-title {
@@ -479,7 +476,6 @@ select.form-control option {
   border-right: none;
   padding: 16px;
   margin-bottom: 16px;
-  order: 5;
 }
 
 .calibration-section h3 {
