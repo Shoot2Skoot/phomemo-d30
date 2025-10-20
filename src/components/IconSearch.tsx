@@ -3,7 +3,7 @@ import './IconSearch.css';
 
 interface IconSearchResult {
   name: string;
-  library: 'fa' | 'lucide' | 'ph';
+  library: 'fa' | 'fa7' | 'lucide' | 'ph' | 'game-icons' | 'cbi' | 'material-symbols' | 'solar' | 'tabler' | 'iconamoon';
   svg: string;
 }
 
@@ -13,7 +13,7 @@ interface IconSearchProps {
 
 export function IconSearch({ onIconSelect }: IconSearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedLibrary, setSelectedLibrary] = useState<'fa' | 'lucide' | 'ph' | 'all'>('all');
+  const [selectedLibrary, setSelectedLibrary] = useState<'fa' | 'fa7' | 'lucide' | 'ph' | 'game-icons' | 'cbi' | 'material-symbols' | 'solar' | 'tabler' | 'iconamoon' | 'all'>('all');
   const [results, setResults] = useState<IconSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -27,10 +27,12 @@ export function IconSearch({ onIconSelect }: IconSearchProps) {
     setLoading(true);
     try {
       const collections = library === 'all'
-        ? ['fa-solid', 'fa-regular', 'lucide', 'ph']
+        ? ['fa7-solid', 'fa7-regular', 'fa-solid', 'fa-regular', 'lucide', 'ph', 'game-icons', 'cbi', 'material-symbols', 'solar', 'tabler', 'iconamoon']
         : library === 'fa'
           ? ['fa-solid', 'fa-regular']
-          : [library];
+          : library === 'fa7'
+            ? ['fa7-solid', 'fa7-regular']
+            : [library];
 
       const allResults: IconSearchResult[] = [];
 
@@ -68,8 +70,16 @@ export function IconSearch({ onIconSelect }: IconSearchProps) {
                   continue;
                 }
 
-                const libraryType = collection.startsWith('fa-') ? 'fa' :
-                                   collection === 'lucide' ? 'lucide' : 'ph';
+                const libraryType = collection.startsWith('fa7-') ? 'fa7' :
+                                   collection.startsWith('fa-') ? 'fa' :
+                                   collection === 'lucide' ? 'lucide' :
+                                   collection === 'ph' ? 'ph' :
+                                   collection === 'game-icons' ? 'game-icons' :
+                                   collection === 'cbi' ? 'cbi' :
+                                   collection === 'material-symbols' ? 'material-symbols' :
+                                   collection === 'solar' ? 'solar' :
+                                   collection === 'tabler' ? 'tabler' :
+                                   collection === 'iconamoon' ? 'iconamoon' : 'fa' as any;
 
                 // Extract just the icon name (without collection prefix)
                 const displayName = iconName.includes(':')
@@ -78,7 +88,15 @@ export function IconSearch({ onIconSelect }: IconSearchProps) {
 
                 // Embed library type as HTML comment in SVG for detection
                 const libraryTag = libraryType === 'fa' ? 'font-awesome' :
-                                   libraryType === 'lucide' ? 'lucide' : 'phosphor';
+                                   libraryType === 'fa7' ? 'font-awesome-7' :
+                                   libraryType === 'lucide' ? 'lucide' :
+                                   libraryType === 'ph' ? 'phosphor' :
+                                   libraryType === 'game-icons' ? 'game-icons' :
+                                   libraryType === 'cbi' ? 'cbi' :
+                                   libraryType === 'material-symbols' ? 'material-symbols' :
+                                   libraryType === 'solar' ? 'solar' :
+                                   libraryType === 'tabler' ? 'tabler' :
+                                   libraryType === 'iconamoon' ? 'iconamoon' : libraryType;
                 const taggedSvg = svgText.replace('<svg', `<!-- ${libraryTag} --><svg`);
 
                 console.log(`Loaded icon: ${fullIconId}`);
@@ -114,11 +132,18 @@ export function IconSearch({ onIconSelect }: IconSearchProps) {
     return () => clearTimeout(timer);
   }, [searchTerm, selectedLibrary]);
 
-  const getLibraryLabel = (lib: 'fa' | 'lucide' | 'ph') => {
+  const getLibraryLabel = (lib: 'fa' | 'fa7' | 'lucide' | 'ph' | 'game-icons' | 'cbi' | 'material-symbols' | 'solar' | 'tabler' | 'iconamoon') => {
     switch (lib) {
       case 'fa': return 'Font Awesome';
+      case 'fa7': return 'Font Awesome 7';
       case 'lucide': return 'Lucide';
       case 'ph': return 'Phosphor';
+      case 'game-icons': return 'Game Icons';
+      case 'cbi': return 'CBI';
+      case 'material-symbols': return 'Material Symbols';
+      case 'solar': return 'Solar';
+      case 'tabler': return 'Tabler';
+      case 'iconamoon': return 'Iconamoon';
     }
   };
 
@@ -138,9 +163,16 @@ export function IconSearch({ onIconSelect }: IconSearchProps) {
           onChange={(e) => setSelectedLibrary(e.target.value as any)}
         >
           <option value="all">All Libraries</option>
-          <option value="fa">Font Awesome</option>
+          <option value="fa7">Font Awesome 7</option>
+          <option value="fa">Font Awesome 6</option>
           <option value="lucide">Lucide</option>
           <option value="ph">Phosphor</option>
+          <option value="game-icons">Game Icons</option>
+          <option value="cbi">CBI</option>
+          <option value="material-symbols">Material Symbols</option>
+          <option value="solar">Solar</option>
+          <option value="tabler">Tabler</option>
+          <option value="iconamoon">Iconamoon</option>
         </select>
       </div>
 
@@ -180,7 +212,7 @@ export function IconSearch({ onIconSelect }: IconSearchProps) {
 
       {!searchTerm && (
         <div className="icon-search-hint">
-          <p>🔍 Search for icons from Font Awesome, Lucide, and Phosphor libraries</p>
+          <p>🔍 Search thousands of icons from multiple libraries</p>
           <p style={{ fontSize: '0.85rem', marginTop: '8px' }}>
             Try searching for: star, home, user, heart, settings, check, arrow, etc.
           </p>

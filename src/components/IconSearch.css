@@ -103,6 +103,11 @@
   color: #1e40af;
 }
 
+.icon-search-result-badge.fa7 {
+  background: #c7d2fe;
+  color: #3730a3;
+}
+
 .icon-search-result-badge.lucide {
   background: #fef3c7;
   color: #92400e;
@@ -111,6 +116,36 @@
 .icon-search-result-badge.ph {
   background: #fce7f3;
   color: #831843;
+}
+
+.icon-search-result-badge.game-icons {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.icon-search-result-badge.cbi {
+  background: #e0e7ff;
+  color: #312e81;
+}
+
+.icon-search-result-badge.material-symbols {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.icon-search-result-badge.solar {
+  background: #fff7ed;
+  color: #7c2d12;
+}
+
+.icon-search-result-badge.tabler {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.icon-search-result-badge.iconamoon {
+  background: #f3e8ff;
+  color: #581c87;
 }
 
 /* Scrollbar styling */
