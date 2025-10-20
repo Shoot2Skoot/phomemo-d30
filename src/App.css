@@ -89,7 +89,7 @@ body {
   background: #0d0d0d;
   border: none;
   border-right: 1px solid #222;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: #666;
   cursor: pointer;
   transition: all 0.15s;
@@ -141,7 +141,7 @@ body {
   margin-bottom: 6px;
   color: #999 !important;
   font-weight: 500;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -149,7 +149,7 @@ body {
 .form-group small {
   display: block;
   color: #666;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   margin-top: 4px;
   line-height: 1.4;
 }
@@ -159,7 +159,7 @@ body {
   padding: 8px 10px;
   border: 1px solid #333;
   border-radius: 0;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   transition: border-color 0.15s, background 0.15s;
   font-family: inherit;
   background: #0d0d0d;
@@ -363,7 +363,7 @@ select.form-control option {
   border-top: 1px solid #222;
   padding: 10px 16px;
   color: #666;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
 }
 
 .preview-info p {
@@ -385,7 +385,7 @@ select.form-control option {
   padding: 10px 16px;
   border: 1px solid #333;
   border-radius: 0;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
@@ -439,7 +439,7 @@ select.form-control option {
 }
 
 .settings-title {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #999;
   margin-bottom: 12px;
@@ -474,7 +474,7 @@ select.form-control option {
 .calibration-section h3 {
   color: #999;
   margin-bottom: 12px;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -503,7 +503,7 @@ select.form-control option {
   align-items: center;
   gap: 6px;
   animation: none;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   border: 1px solid;
 }
 
@@ -544,7 +544,7 @@ select.form-control option {
 .debug-panel h3 {
   color: #999;
   margin-bottom: 10px;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -555,7 +555,7 @@ select.form-control option {
   padding: 10px;
   border: 1px solid #222;
   font-family: inherit;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   color: #999;
   line-height: 1.8;
 }
