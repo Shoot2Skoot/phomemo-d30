@@ -331,7 +331,7 @@ select.form-control option {
 }
 
 .label-wrapper {
-  display: inline-block;
+  display: flex;
   background: #f8f8f8;
   box-shadow: none;
   border: 1px solid #444;
@@ -340,10 +340,10 @@ select.form-control option {
 .printable-area {
   position: relative;
   margin: 0 auto;
-  border: 1px solid #666;
+  border: 3px solid #5abdff;
   background: white;
   box-shadow: none;
-  display: inline-block;
+  display: flex;
   min-width: 200px;
 }
 
@@ -355,6 +355,7 @@ select.form-control option {
   background: white;
   image-rendering: crisp-edges;
   image-rendering: pixelated;
+  vertical-align: top;
 }
 
 .preview-info {
