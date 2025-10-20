@@ -44,7 +44,7 @@ function App() {
   );
   const [textIconFontSize, setTextIconFontSize] = useState(120);
   const [textIconIconSvg, setTextIconIconSvg] = useState<string>(iconLibrary[0].svg);
-  const [textIconIconSize, setTextIconIconSize] = useState(120);
+  const [textIconIconSize, setTextIconIconSize] = useState(75);
 
   // Rich Text tab state
   const [richTextSegments, setRichTextSegments] = useState<RichTextSegment[]>(
@@ -377,10 +377,6 @@ function App() {
                     />
                   </div>
                   <div className="form-group">
-                    <label>Search Icon</label>
-                    <IconSearch onIconSelect={setTextIconIconSvg} />
-                  </div>
-                  <div className="form-group">
                     <label htmlFor="texticon-icon-size">
                       Icon Size: <span>{textIconIconSize}px</span>
                     </label>
@@ -393,6 +389,10 @@ function App() {
                       value={textIconIconSize}
                       onChange={(e) => setTextIconIconSize(Number(e.target.value))}
                     />
+                  </div>
+                  <div className="form-group">
+                    <label>Search Icon</label>
+                    <IconSearch onIconSelect={setTextIconIconSvg} />
                   </div>
                 </div>
               )}

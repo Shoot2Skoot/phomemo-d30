@@ -413,17 +413,33 @@ export class CanvasRenderer {
 
     // Draw icon after text, centered vertically (independent of text)
     const iconX = startX + textWidth;
-    const iconY = -iconSize / 2; // Center the icon vertically in canvas
 
-    // Load and draw icon directly
+    // Load and draw icon with preserved aspect ratio
     try {
       console.log('Drawing icon, SVG length:', iconSvg?.length, 'Preview:', iconSvg?.substring(0, 100));
       const img = await this.loadSvgImage(iconSvg);
-      this.ctx.drawImage(img, iconX, iconY, iconSize, iconSize);
+
+      // Calculate aspect ratio and preserve it
+      const aspectRatio = img.width / img.height;
+      let drawWidth = iconSize;
+      let drawHeight = iconSize;
+
+      if (aspectRatio > 1) {
+        // Wide icon - constrain width, reduce height
+        drawHeight = iconSize / aspectRatio;
+      } else if (aspectRatio < 1) {
+        // Tall icon - constrain height, reduce width
+        drawWidth = iconSize * aspectRatio;
+      }
+
+      // Center the icon vertically based on its actual height
+      const iconY = -drawHeight / 2;
+
+      this.ctx.drawImage(img, iconX, iconY, drawWidth, drawHeight);
     } catch (error) {
       console.error('Failed to draw icon:', error, 'SVG:', iconSvg?.substring(0, 200));
       // Draw placeholder if icon fails
-      this.ctx.fillRect(iconX, iconY, iconSize, iconSize);
+      this.ctx.fillRect(iconX, -iconSize / 2, iconSize, iconSize);
     }
 
     this.ctx.restore();
@@ -544,7 +560,20 @@ export class CanvasRenderer {
       const img = new Image();
 
       img.onload = () => {
-        this.ctx.drawImage(img, x, y - size / 2, size, size);
+        // Calculate aspect ratio and preserve it
+        const aspectRatio = img.width / img.height;
+        let drawWidth = size;
+        let drawHeight = size;
+
+        if (aspectRatio > 1) {
+          // Wide icon - constrain width, reduce height
+          drawHeight = size / aspectRatio;
+        } else if (aspectRatio < 1) {
+          // Tall icon - constrain height, reduce width
+          drawWidth = size * aspectRatio;
+        }
+
+        this.ctx.drawImage(img, x, y - drawHeight / 2, drawWidth, drawHeight);
         URL.revokeObjectURL(img.src);
         resolve();
       };
