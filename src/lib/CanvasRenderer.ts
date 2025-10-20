@@ -401,20 +401,7 @@ export class CanvasRenderer {
       verticalOffset
     });
 
-    // Calculate total width
-    const totalWidth = textWidth + iconSize;
-
-    // Start from left (centered horizontally)
-    const startX = -totalWidth / 2;
-
-    // Draw text (using exact same Y position as drawText for single line)
-    this.ctx.textAlign = 'left';
-    this.ctx.fillText(text, startX, verticalOffset);
-
-    // Draw icon after text, centered vertically (independent of text)
-    const iconX = startX + textWidth;
-
-    // Load and draw icon with preserved aspect ratio
+    // Load icon first to get actual dimensions
     try {
       console.log('Drawing icon, SVG length:', iconSvg?.length, 'Preview:', iconSvg?.substring(0, 100));
       const img = await this.loadSvgImage(iconSvg);
@@ -436,14 +423,25 @@ export class CanvasRenderer {
         drawWidth = scaledSize * aspectRatio;
       }
 
-      // Center the icon vertically based on its actual height
+      // Now calculate total width with actual icon dimensions
+      const totalWidth = textWidth + drawWidth;
+      const startX = -totalWidth / 2;
+
+      // Draw text (using exact same Y position as drawText for single line)
+      this.ctx.textAlign = 'left';
+      this.ctx.fillText(text, startX, verticalOffset);
+
+      // Draw icon after text, centered vertically (independent of text)
+      const iconX = startX + textWidth;
       const iconY = -drawHeight / 2;
 
       this.ctx.drawImage(img, iconX, iconY, drawWidth, drawHeight);
     } catch (error) {
       console.error('Failed to draw icon:', error, 'SVG:', iconSvg?.substring(0, 200));
-      // Draw placeholder if icon fails
-      this.ctx.fillRect(iconX, -iconSize / 2, iconSize, iconSize);
+      // Draw text only if icon fails, centered without icon
+      const startX = -textWidth / 2;
+      this.ctx.textAlign = 'left';
+      this.ctx.fillText(text, startX, verticalOffset);
     }
 
     this.ctx.restore();
