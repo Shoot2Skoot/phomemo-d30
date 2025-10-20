@@ -367,6 +367,71 @@ function App() {
     showStatus('Print job loaded from history', 'success');
   };
 
+  const handleSaveLabel = async () => {
+    if (!canvasRef.current) return;
+
+    try {
+      // Calculate width if needed
+      const printWidth = autoWidth ? calculateAutoWidth() : dimensions.widthMm;
+
+      // Capture canvas preview
+      const previewDataUrl = canvasRef.current.toDataURL('image/png');
+
+      // Create print job
+      const printJob: Omit<PrintHistoryItem, 'id' | 'timestamp'> = {
+        tab: activeTab,
+        previewDataUrl,
+        dimensions: { ...dimensions, widthMm: printWidth },
+        autoWidth,
+        footerMode,
+        mediaType,
+        extraFeedMm,
+      };
+
+      // Add tab-specific data
+      if (activeTab === 'text') {
+        printJob.text = text;
+        printJob.fontSize = fontSize;
+        printJob.selectedFont = selectedFont;
+      } else if (activeTab === 'texticon') {
+        printJob.textIconText = textIconText;
+        printJob.textIconFont = textIconFont;
+        printJob.textIconFontSize = textIconFontSize;
+        printJob.textIconIconSvg = textIconIconSvg;
+        printJob.textIconIconSize = textIconIconSize;
+        printJob.textIconAllCaps = textIconAllCaps;
+        printJob.textIconSmallCaps = textIconSmallCaps;
+        printJob.textIconItalic = textIconItalic;
+        printJob.textIconFontWeight = textIconFontWeight;
+      } else if (activeTab === 'icons') {
+        printJob.selectedIcon = selectedIcon ? { name: selectedIcon.name, svg: selectedIcon.svg } : undefined;
+        printJob.iconLabel = iconLabel;
+      } else if (activeTab === 'barcode') {
+        printJob.barcodeData = barcodeData;
+      } else if (activeTab === 'qr') {
+        printJob.qrData = qrData;
+      } else if (activeTab === 'image' && imageFile) {
+        // Convert image file to base64 for storage
+        const reader = new FileReader();
+        reader.onload = () => {
+          printJob.imageDataUrl = reader.result as string;
+          savePrintJob(printJob);
+          setPrintHistory(getPrintHistory());
+          showStatus('Label saved to history', 'success');
+        };
+        reader.readAsDataURL(imageFile);
+        return; // Early return, history will be saved in onload
+      }
+
+      savePrintJob(printJob);
+      setPrintHistory(getPrintHistory());
+      showStatus('Label saved to history', 'success');
+    } catch (error) {
+      showStatus(`Error: ${error}`, 'error');
+      console.error(error);
+    }
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -940,6 +1005,9 @@ function App() {
               })()} • <span style={{color: '#5abdff'}}>Margins Shown with Blue</span></p>
 
               <div className="button-group">
+                <button className="btn" onClick={handleSaveLabel}>
+                  💾 Save Label
+                </button>
                 {!printerConnected ? (
                   <button className="btn btn-connect" onClick={async () => {
                     try {
