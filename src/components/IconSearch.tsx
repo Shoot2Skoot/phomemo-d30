@@ -46,9 +46,11 @@ export function IconSearch({ onIconSelect }: IconSearchProps) {
             // Fetch SVG for each icon
             for (const iconName of searchData.icons.slice(0, 10)) {
               try {
-                // The iconName is just the name without collection prefix
-                // We need to construct the full icon ID: collection:iconName
-                const fullIconId = `${collection}:${iconName}`;
+                // Check if iconName already includes the collection prefix
+                const fullIconId = iconName.includes(':')
+                  ? iconName  // Already has collection prefix
+                  : `${collection}:${iconName}`;  // Add collection prefix
+
                 const svgResponse = await fetch(
                   `https://api.iconify.design/${fullIconId}.svg?color=currentColor`
                 );
@@ -69,9 +71,14 @@ export function IconSearch({ onIconSelect }: IconSearchProps) {
                 const libraryType = collection.startsWith('fa-') ? 'fa' :
                                    collection === 'lucide' ? 'lucide' : 'ph';
 
+                // Extract just the icon name (without collection prefix)
+                const displayName = iconName.includes(':')
+                  ? iconName.split(':')[1]
+                  : iconName;
+
                 console.log(`Loaded icon: ${fullIconId}`);
                 allResults.push({
-                  name: iconName,
+                  name: displayName,
                   library: libraryType,
                   svg: svgText
                 });
