@@ -419,17 +419,21 @@ export class CanvasRenderer {
       console.log('Drawing icon, SVG length:', iconSvg?.length, 'Preview:', iconSvg?.substring(0, 100));
       const img = await this.loadSvgImage(iconSvg);
 
+      // Apply library-specific scale factor
+      const scaleFactor = this.getIconScaleFactor(iconSvg);
+      const scaledSize = iconSize * scaleFactor;
+
       // Calculate aspect ratio and preserve it
       const aspectRatio = img.width / img.height;
-      let drawWidth = iconSize;
-      let drawHeight = iconSize;
+      let drawWidth = scaledSize;
+      let drawHeight = scaledSize;
 
       if (aspectRatio > 1) {
         // Wide icon - constrain width, reduce height
-        drawHeight = iconSize / aspectRatio;
+        drawHeight = scaledSize / aspectRatio;
       } else if (aspectRatio < 1) {
         // Tall icon - constrain height, reduce width
-        drawWidth = iconSize * aspectRatio;
+        drawWidth = scaledSize * aspectRatio;
       }
 
       // Center the icon vertically based on its actual height
@@ -443,6 +447,28 @@ export class CanvasRenderer {
     }
 
     this.ctx.restore();
+  }
+
+  /**
+   * Detect icon library and return scale factor
+   * Lucide: 92/120 = 0.7667
+   * Phosphor: 97/120 = 0.8083
+   * Font Awesome: 85/120 = 0.7083
+   */
+  private getIconScaleFactor(svgContent: string): number {
+    // Check for library-specific attributes in the SVG
+    if (svgContent.includes('lucide') || svgContent.includes('stroke-width')) {
+      // Lucide icons typically have stroke-width attribute
+      return 0.7667;
+    } else if (svgContent.includes('phosphor') || svgContent.includes('weight=')) {
+      // Phosphor icons often have weight attribute
+      return 0.8083;
+    } else if (svgContent.includes('font-awesome') || svgContent.includes('fa-')) {
+      // Font Awesome icons
+      return 0.7083;
+    }
+    // Default to Lucide scale if we can't detect
+    return 0.7667;
   }
 
   /**
@@ -560,17 +586,21 @@ export class CanvasRenderer {
       const img = new Image();
 
       img.onload = () => {
+        // Apply library-specific scale factor
+        const scaleFactor = this.getIconScaleFactor(svgContent);
+        const scaledSize = size * scaleFactor;
+
         // Calculate aspect ratio and preserve it
         const aspectRatio = img.width / img.height;
-        let drawWidth = size;
-        let drawHeight = size;
+        let drawWidth = scaledSize;
+        let drawHeight = scaledSize;
 
         if (aspectRatio > 1) {
           // Wide icon - constrain width, reduce height
-          drawHeight = size / aspectRatio;
+          drawHeight = scaledSize / aspectRatio;
         } else if (aspectRatio < 1) {
           // Tall icon - constrain height, reduce width
-          drawWidth = size * aspectRatio;
+          drawWidth = scaledSize * aspectRatio;
         }
 
         this.ctx.drawImage(img, x, y - drawHeight / 2, drawWidth, drawHeight);

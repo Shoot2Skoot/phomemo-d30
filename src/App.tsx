@@ -2,21 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import { PhomemoD30Printer, PrinterDebugInfo } from './lib/PhomemoD30Printer';
 import { CanvasRenderer, LabelDimensions } from './lib/CanvasRenderer';
 import { iconLibrary } from './lib/icons';
-import { RichTextEditor } from './components/RichTextEditor';
 import { FontSelector } from './components/FontSelector';
 import { IconSearch } from './components/IconSearch';
-import { RichTextSegment, textToSegments } from './lib/types';
-import { FontDefinition, SYSTEM_FONTS } from './lib/fonts';
+import { FontDefinition } from './lib/fonts';
 import './App.css';
 
-type Tab = 'text' | 'texticon' | 'richtext' | 'icons' | 'barcode' | 'qr' | 'image';
+type Tab = 'text' | 'texticon' | 'icons' | 'barcode' | 'qr' | 'image';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
   const printerRef = useRef<PhomemoD30Printer | null>(null);
 
-  const [activeTab, setActiveTab] = useState<Tab>('text');
+  const [activeTab, setActiveTab] = useState<Tab>('texticon');
   const [dimensions, setDimensions] = useState<LabelDimensions>({
     widthMm: 40,
     heightMm: 12, // Printable area (what gets sent to printer)
@@ -43,13 +41,8 @@ function App() {
     { name: 'Bebas Neue', family: 'Bebas Neue', source: 'google', category: 'display', variants: ['regular'] }
   );
   const [textIconFontSize, setTextIconFontSize] = useState(120);
-  const [textIconIconSvg, setTextIconIconSvg] = useState<string>(iconLibrary[0].svg);
+  const [textIconIconSvg, setTextIconIconSvg] = useState<string>('<svg xmlns="http://www.w3.org/2000/svg" width="1.13em" height="1em" viewBox="0 0 576 512"><path fill="currentColor" d="M280.37 148.26L96 300.11V464a16 16 0 0 0 16 16l112.06-.29a16 16 0 0 0 15.92-16V368a16 16 0 0 1 16-16h64a16 16 0 0 1 16 16v95.64a16 16 0 0 0 16 16.05L464 480a16 16 0 0 0 16-16V300L295.67 148.26a12.19 12.19 0 0 0-15.3 0M571.6 251.47L488 182.56V44.05a12 12 0 0 0-12-12h-56a12 12 0 0 0-12 12v72.61L318.47 43a48 48 0 0 0-61 0L4.34 251.47a12 12 0 0 0-1.6 16.9l25.5 31A12 12 0 0 0 45.15 301l235.22-193.74a12.19 12.19 0 0 1 15.3 0L530.9 301a12 12 0 0 0 16.9-1.6l25.5-31a12 12 0 0 0-1.7-16.93"/></svg>');
   const [textIconIconSize, setTextIconIconSize] = useState(75);
-
-  // Rich Text tab state
-  const [richTextSegments, setRichTextSegments] = useState<RichTextSegment[]>(
-    textToSegments('Hello World!')
-  );
 
   // Icons tab state
   const [selectedIcon, setSelectedIcon] = useState<typeof iconLibrary[0] | null>(null);
@@ -96,7 +89,7 @@ function App() {
   // Update preview when inputs change
   useEffect(() => {
     updatePreview();
-  }, [activeTab, text, fontSize, selectedFont, textIconText, textIconFont, textIconFontSize, textIconIconSvg, textIconIconSize, richTextSegments, selectedIcon, iconLabel, barcodeData, qrData, imageFile, dimensions, autoWidth]);
+  }, [activeTab, text, fontSize, selectedFont, textIconText, textIconFont, textIconFontSize, textIconIconSvg, textIconIconSize, selectedIcon, iconLabel, barcodeData, qrData, imageFile, dimensions, autoWidth]);
 
   const calculateAutoWidth = (): number => {
     if (!canvasRef.current) return dimensions.widthMm;
@@ -118,20 +111,6 @@ function App() {
         const textWidth = ctx.measureText(textIconText).width;
         const iconWidth = textIconIconSize;
         contentWidthPx = textWidth + iconWidth;
-        break;
-      }
-      case 'richtext': {
-        // Calculate width for rich text with inline icons
-        ctx.font = `${fontSize}px Arial`;
-        let totalWidth = 0;
-        for (const segment of richTextSegments) {
-          if (segment.type === 'text') {
-            totalWidth += ctx.measureText(segment.content).width;
-          } else if (segment.type === 'icon') {
-            totalWidth += segment.size || fontSize;
-          }
-        }
-        contentWidthPx = totalWidth;
         break;
       }
       case 'icons':
@@ -182,11 +161,6 @@ function App() {
               textIconIconSvg,
               textIconIconSize
             );
-          }
-          break;
-        case 'richtext':
-          if (richTextSegments.length > 0) {
-            await rendererRef.current.drawRichText(richTextSegments, fontSize, selectedFont.family);
           }
           break;
         case 'icons':
@@ -285,7 +259,7 @@ function App() {
         <div className="main-content">
           <div className="card">
             <div className="tabs">
-              {(['text', 'texticon', 'richtext', 'icons', 'barcode', 'qr', 'image'] as Tab[]).map((tab) => (
+              {(['text', 'texticon', 'icons', 'barcode', 'qr', 'image'] as Tab[]).map((tab) => (
                 <button
                   key={tab}
                   className={`tab-button ${activeTab === tab ? 'active' : ''}`}
@@ -293,7 +267,6 @@ function App() {
                 >
                   {tab === 'text' && '📝 Text'}
                   {tab === 'texticon' && '🏷️ Text + Icon'}
-                  {tab === 'richtext' && '✨ Rich Text'}
                   {tab === 'icons' && '🎨 Icons'}
                   {tab === 'barcode' && '📊 Barcode'}
                   {tab === 'qr' && '📱 QR Code'}
@@ -393,45 +366,6 @@ function App() {
                   <div className="form-group">
                     <label>Search Icon</label>
                     <IconSearch onIconSelect={setTextIconIconSvg} />
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'richtext' && (
-                <div>
-                  <div className="form-group">
-                    <label>Rich Text with Inline Icons</label>
-                    <RichTextEditor
-                      segments={richTextSegments}
-                      onChange={setRichTextSegments}
-                      fontSize={fontSize}
-                    />
-                    <small style={{ display: 'block', marginTop: '8px' }}>
-                      Create labels with mixed text and icons. Click "➕ Text" to add text segments,
-                      "🎨 Icon" to insert icons from multiple libraries.
-                    </small>
-                  </div>
-                  <div className="form-group">
-                    <label>Font Family</label>
-                    <FontSelector
-                      selectedFont={selectedFont}
-                      onFontChange={setSelectedFont}
-                      fontSize={fontSize}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="richtext-font-size">
-                      Font Size: <span>{fontSize}px</span>
-                    </label>
-                    <input
-                      type="range"
-                      id="richtext-font-size"
-                      className="slider"
-                      min="12"
-                      max="120"
-                      value={fontSize}
-                      onChange={(e) => setFontSize(Number(e.target.value))}
-                    />
                   </div>
                 </div>
               )}
