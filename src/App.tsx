@@ -653,16 +653,12 @@ function App() {
               </div>
             </div>
             <div className="preview-info">
-              <p>📏 Printable: {dimensions.widthMm}×{printableHeightMm}mm</p>
               <p>📐 Label Size: {(() => {
                 const width = autoWidth ? calculateAutoWidth() : dimensions.widthMm;
                 const widthInches = (width / 25.4).toFixed(2);
                 const labelHeightInches = (labelHeightMm / 25.4).toFixed(2);
                 return `${width}×${labelHeightMm}mm (${widthInches}×${labelHeightInches}″)`;
-              })()}</p>
-              <p style={{fontSize: '0.85rem', color: '#5abdff'}}>
-                💡 Blue border shows printable area, gray areas are margins
-              </p>
+              })()} • <span style={{color: '#5abdff'}}>Blue = printable, Gray = margins</span></p>
             </div>
           </div>
         </div>
