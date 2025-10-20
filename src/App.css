@@ -76,6 +76,8 @@ body {
   background: #141414;
   border-bottom: 1px solid #222;
   padding: 0;
+  width: 100%;
+  min-width: 0;
 }
 
 .tabs {
@@ -123,6 +125,7 @@ body {
 .tab-content {
   padding: 16px;
   animation: none;
+  min-width: 0;
 }
 
 @keyframes fadeIn {
@@ -334,7 +337,7 @@ select.form-control option {
 
 .label-wrapper {
   display: flex;
-  background: #f8f8f8;
+  background: #e4f5ff;
   box-shadow: none;
   border: 1px solid #444;
 }
@@ -343,7 +346,7 @@ select.form-control option {
   position: relative;
   margin: 0 auto;
   border: 3px solid #5abdff;
-  background: white;
+  background: rgb(213, 234, 255);
   box-shadow: none;
   display: flex;
   min-width: 200px;
