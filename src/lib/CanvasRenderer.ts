@@ -1,6 +1,6 @@
-import JsBarcode from 'jsbarcode';
-import QRCode from 'qrcode';
-import { RichTextSegment } from './types';
+import JsBarcode from "jsbarcode";
+import QRCode from "qrcode";
+import { RichTextSegment } from "./types";
 
 export interface LabelDimensions {
   widthMm: number;
@@ -12,7 +12,7 @@ export interface TextOptions {
   text: string;
   fontSize: number;
   fontFamily?: string;
-  alignment?: 'left' | 'center' | 'right';
+  alignment?: "left" | "center" | "right";
   bold?: boolean;
   italic?: boolean;
 }
@@ -28,7 +28,7 @@ export class CanvasRenderer {
 
   constructor(canvas: HTMLCanvasElement, dimensions: LabelDimensions) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d')!;
+    this.ctx = canvas.getContext("2d")!;
     this.dimensions = dimensions;
     this.updateSize();
   }
@@ -38,8 +38,12 @@ export class CanvasRenderer {
    */
   updateSize(): void {
     // Direct mapping (no rotation for preview)
-    this.canvas.width = Math.round(this.dimensions.widthMm * this.dimensions.pixelsPerMm);
-    this.canvas.height = Math.round(this.dimensions.heightMm * this.dimensions.pixelsPerMm);
+    this.canvas.width = Math.round(
+      this.dimensions.widthMm * this.dimensions.pixelsPerMm
+    );
+    this.canvas.height = Math.round(
+      this.dimensions.heightMm * this.dimensions.pixelsPerMm
+    );
 
     // Ensure width is multiple of 8 for proper byte alignment
     if (this.canvas.width % 8 !== 0) {
@@ -59,7 +63,7 @@ export class CanvasRenderer {
    * Clear canvas to white
    */
   clear(): void {
-    this.ctx.fillStyle = 'white';
+    this.ctx.fillStyle = "white";
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
@@ -75,23 +79,25 @@ export class CanvasRenderer {
     this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
 
     // Set text properties
-    this.ctx.fillStyle = 'black';
-    const weight = options.bold ? 'bold' : 'normal';
-    const style = options.italic ? 'italic' : 'normal';
-    this.ctx.font = `${style} ${weight} ${options.fontSize}px ${options.fontFamily || 'Arial'}`;
-    this.ctx.textBaseline = 'alphabetic';
+    this.ctx.fillStyle = "black";
+    const weight = options.bold ? "bold" : "normal";
+    const style = options.italic ? "italic" : "normal";
+    this.ctx.font = `${style} ${weight} ${options.fontSize}px ${
+      options.fontFamily || "Arial"
+    }`;
+    this.ctx.textBaseline = "alphabetic";
 
     // Handle text alignment
     switch (options.alignment) {
-      case 'left':
-        this.ctx.textAlign = 'left';
+      case "left":
+        this.ctx.textAlign = "left";
         break;
-      case 'right':
-        this.ctx.textAlign = 'right';
+      case "right":
+        this.ctx.textAlign = "right";
         break;
-      case 'center':
+      case "center":
       default:
-        this.ctx.textAlign = 'center';
+        this.ctx.textAlign = "center";
         break;
     }
 
@@ -106,32 +112,50 @@ export class CanvasRenderer {
     let maxAscent = 0;
     let maxDescent = 0;
 
-    lines.forEach(line => {
+    lines.forEach((line) => {
       const metrics = this.ctx.measureText(line);
-      maxAscent = Math.max(maxAscent, metrics.actualBoundingBoxAscent || metrics.fontBoundingBoxAscent || options.fontSize * 0.8);
-      maxDescent = Math.max(maxDescent, metrics.actualBoundingBoxDescent || metrics.fontBoundingBoxDescent || options.fontSize * 0.2);
+      maxAscent = Math.max(
+        maxAscent,
+        metrics.actualBoundingBoxAscent ||
+          metrics.fontBoundingBoxAscent ||
+          options.fontSize * 0.8
+      );
+      maxDescent = Math.max(
+        maxDescent,
+        metrics.actualBoundingBoxDescent ||
+          metrics.fontBoundingBoxDescent ||
+          options.fontSize * 0.2
+      );
     });
 
     // Center based on actual text bounds, not font metrics
     const actualTextHeight = maxAscent + maxDescent;
     const verticalOffset = -actualTextHeight / 2 + maxAscent;
-    const startY = verticalOffset - (lines.length - 1) * lineHeight / 2;
+    const startY = verticalOffset - ((lines.length - 1) * lineHeight) / 2;
 
     // Debug logging
-    console.log('Text-only font:', this.ctx.font);
-    console.log('Text-only centering:', {
+    console.log("Text-only font:", this.ctx.font);
+    console.log("Text-only centering:", {
       text: options.text,
       fontFamily: options.fontFamily,
       fontSize: options.fontSize,
-      actualBoundingBoxAscent: lines.map(l => this.ctx.measureText(l).actualBoundingBoxAscent),
-      fontBoundingBoxAscent: lines.map(l => this.ctx.measureText(l).fontBoundingBoxAscent),
-      actualBoundingBoxDescent: lines.map(l => this.ctx.measureText(l).actualBoundingBoxDescent),
-      fontBoundingBoxDescent: lines.map(l => this.ctx.measureText(l).fontBoundingBoxDescent),
+      actualBoundingBoxAscent: lines.map(
+        (l) => this.ctx.measureText(l).actualBoundingBoxAscent
+      ),
+      fontBoundingBoxAscent: lines.map(
+        (l) => this.ctx.measureText(l).fontBoundingBoxAscent
+      ),
+      actualBoundingBoxDescent: lines.map(
+        (l) => this.ctx.measureText(l).actualBoundingBoxDescent
+      ),
+      fontBoundingBoxDescent: lines.map(
+        (l) => this.ctx.measureText(l).fontBoundingBoxDescent
+      ),
       maxAscent,
       maxDescent,
       actualTextHeight,
       verticalOffset,
-      startY
+      startY,
     });
 
     lines.forEach((line, i) => {
@@ -145,12 +169,12 @@ export class CanvasRenderer {
    * Word wrap text to fit within maximum width
    */
   private wrapText(text: string, maxWidth: number): string[] {
-    const words = text.split(' ');
+    const words = text.split(" ");
     const lines: string[] = [];
-    let currentLine = '';
+    let currentLine = "";
 
     for (const word of words) {
-      const testLine = currentLine + (currentLine ? ' ' : '') + word;
+      const testLine = currentLine + (currentLine ? " " : "") + word;
       const metrics = this.ctx.measureText(testLine);
 
       if (metrics.width > maxWidth && currentLine) {
@@ -165,7 +189,7 @@ export class CanvasRenderer {
       lines.push(currentLine);
     }
 
-    return lines.length > 0 ? lines : [''];
+    return lines.length > 0 ? lines : [""];
   }
 
   /**
@@ -185,14 +209,20 @@ export class CanvasRenderer {
         const yOffset = label ? -20 : 0;
 
         // Draw icon
-        this.ctx.drawImage(img, -iconSize / 2, -iconSize / 2 + yOffset, iconSize, iconSize);
+        this.ctx.drawImage(
+          img,
+          -iconSize / 2,
+          -iconSize / 2 + yOffset,
+          iconSize,
+          iconSize
+        );
 
         // Draw label if provided
         if (label) {
-          this.ctx.fillStyle = 'black';
-          this.ctx.font = '16px Arial';
-          this.ctx.textAlign = 'center';
-          this.ctx.textBaseline = 'top';
+          this.ctx.fillStyle = "black";
+          this.ctx.font = "16px Arial";
+          this.ctx.textAlign = "center";
+          this.ctx.textBaseline = "top";
           this.ctx.fillText(label, 0, iconSize / 2 + yOffset + 10);
         }
 
@@ -202,10 +232,10 @@ export class CanvasRenderer {
       };
 
       img.onerror = () => {
-        reject(new Error('Failed to load icon'));
+        reject(new Error("Failed to load icon"));
       };
 
-      const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
+      const svgBlob = new Blob([svgContent], { type: "image/svg+xml" });
       img.src = URL.createObjectURL(svgBlob);
     });
   }
@@ -218,14 +248,14 @@ export class CanvasRenderer {
 
     return new Promise((resolve, reject) => {
       try {
-        const tempCanvas = document.createElement('canvas');
+        const tempCanvas = document.createElement("canvas");
         JsBarcode(tempCanvas, data, {
-          format: 'CODE128',
+          format: "CODE128",
           width: 2,
           height: Math.floor(this.canvas.height * 0.7),
           displayValue: true,
           fontSize: 14,
-          margin: 10
+          margin: 10,
         });
 
         this.ctx.save();
@@ -266,7 +296,7 @@ export class CanvasRenderer {
       const qrDataUrl = await QRCode.toDataURL(data, {
         width: size,
         margin: 2,
-        errorCorrectionLevel: 'M'
+        errorCorrectionLevel: "M",
       });
 
       return new Promise((resolve, reject) => {
@@ -283,7 +313,7 @@ export class CanvasRenderer {
         };
 
         img.onerror = () => {
-          reject(new Error('Failed to load QR code'));
+          reject(new Error("Failed to load QR code"));
         };
 
         img.src = qrDataUrl;
@@ -310,10 +340,11 @@ export class CanvasRenderer {
           this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
 
           // Calculate scale to fit image within canvas
-          const scale = Math.min(
-            this.canvas.width / img.width,
-            this.canvas.height / img.height
-          ) * 0.9;
+          const scale =
+            Math.min(
+              this.canvas.width / img.width,
+              this.canvas.height / img.height
+            ) * 0.9;
 
           const drawWidth = img.width * scale;
           const drawHeight = img.height * scale;
@@ -331,14 +362,14 @@ export class CanvasRenderer {
         };
 
         img.onerror = () => {
-          reject(new Error('Failed to load image'));
+          reject(new Error("Failed to load image"));
         };
 
         img.src = event.target?.result as string;
       };
 
       reader.onerror = () => {
-        reject(new Error('Failed to read file'));
+        reject(new Error("Failed to read file"));
       };
 
       reader.readAsDataURL(file);
@@ -367,27 +398,33 @@ export class CanvasRenderer {
     this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
 
     // Set text properties
-    this.ctx.fillStyle = 'black';
+    this.ctx.fillStyle = "black";
     this.ctx.font = `${fontSize}px ${fontFamily}`;
-    this.ctx.textBaseline = 'alphabetic';
+    this.ctx.textBaseline = "alphabetic";
 
     // Debug: log the font being used
-    console.log('Text+Icon font:', this.ctx.font);
+    console.log("Text+Icon font:", this.ctx.font);
 
     // Measure text (same logic as drawText method)
     const textMetrics = this.ctx.measureText(text);
     const textWidth = textMetrics.width;
 
     // Use actualBoundingBox metrics (can be 0), fallback to fontBoundingBox only if undefined
-    const maxAscent = textMetrics.actualBoundingBoxAscent ?? textMetrics.fontBoundingBoxAscent ?? fontSize * 0.8;
-    const maxDescent = textMetrics.actualBoundingBoxDescent ?? textMetrics.fontBoundingBoxDescent ?? fontSize * 0.2;
+    const maxAscent =
+      textMetrics.actualBoundingBoxAscent ??
+      textMetrics.fontBoundingBoxAscent ??
+      fontSize * 0.8;
+    const maxDescent =
+      textMetrics.actualBoundingBoxDescent ??
+      textMetrics.fontBoundingBoxDescent ??
+      fontSize * 0.2;
 
     // Calculate text height (same as drawText)
     const actualTextHeight = maxAscent + maxDescent;
     const verticalOffset = -actualTextHeight / 2 + maxAscent;
 
     // Debug logging
-    console.log('Text+Icon centering:', {
+    console.log("Text+Icon centering:", {
       text,
       fontFamily,
       fontSize,
@@ -398,12 +435,17 @@ export class CanvasRenderer {
       maxAscent,
       maxDescent,
       actualTextHeight,
-      verticalOffset
+      verticalOffset,
     });
 
     // Load icon first to get actual dimensions
     try {
-      console.log('Drawing icon, SVG length:', iconSvg?.length, 'Preview:', iconSvg?.substring(0, 100));
+      console.log(
+        "Drawing icon, SVG length:",
+        iconSvg?.length,
+        "Preview:",
+        iconSvg?.substring(0, 100)
+      );
       const img = await this.loadSvgImage(iconSvg);
 
       // Apply library-specific scale factor
@@ -431,7 +473,7 @@ export class CanvasRenderer {
       const startX = -totalWidth / 2;
 
       // Draw text (using exact same Y position as drawText for single line)
-      this.ctx.textAlign = 'left';
+      this.ctx.textAlign = "left";
       this.ctx.fillText(text, startX, verticalOffset);
 
       // Draw icon after text with gap, centered vertically (independent of text)
@@ -440,10 +482,15 @@ export class CanvasRenderer {
 
       this.ctx.drawImage(img, iconX, iconY, drawWidth, drawHeight);
     } catch (error) {
-      console.error('Failed to draw icon:', error, 'SVG:', iconSvg?.substring(0, 200));
+      console.error(
+        "Failed to draw icon:",
+        error,
+        "SVG:",
+        iconSvg?.substring(0, 200)
+      );
       // Draw text only if icon fails, centered without icon
       const startX = -textWidth / 2;
-      this.ctx.textAlign = 'left';
+      this.ctx.textAlign = "left";
       this.ctx.fillText(text, startX, verticalOffset);
     }
 
@@ -457,19 +504,34 @@ export class CanvasRenderer {
    * Font Awesome: 85/120 = 0.7083
    */
   private getIconScaleFactor(svgContent: string): number {
+    let detectedLibrary = 'unknown';
+    let scaleFactor = 0.7667;
+
     // Check for library-specific attributes in the SVG
-    if (svgContent.includes('lucide') || svgContent.includes('stroke-width')) {
-      // Lucide icons typically have stroke-width attribute
-      return 0.7667;
-    } else if (svgContent.includes('phosphor') || svgContent.includes('weight=')) {
-      // Phosphor icons often have weight attribute
-      return 0.8333;
-    } else if (svgContent.includes('font-awesome') || svgContent.includes('fa-')) {
+    // Check most specific patterns first
+    if (
+      svgContent.includes("font-awesome") ||
+      svgContent.includes("fa-")
+    ) {
       // Font Awesome icons
-      return 0.7083;
+      detectedLibrary = 'font-awesome';
+      scaleFactor = 0.7083;
+    } else if (
+      svgContent.includes("phosphor") ||
+      svgContent.includes("Phosphor") ||
+      svgContent.includes("ph:")
+    ) {
+      // Phosphor icons often have "phosphor" or "Phosphor" in the SVG
+      detectedLibrary = 'phosphor';
+      scaleFactor = 0.8333;
+    } else if (svgContent.includes("lucide") || svgContent.includes("stroke-width")) {
+      // Lucide icons typically have stroke-width attribute
+      detectedLibrary = 'lucide';
+      scaleFactor = 0.7667;
     }
-    // Default to Lucide scale if we can't detect
-    return 0.7667;
+
+    console.log('Icon library detected:', detectedLibrary, 'Scale factor:', scaleFactor);
+    return scaleFactor;
   }
 
   /**
@@ -485,10 +547,10 @@ export class CanvasRenderer {
       };
 
       img.onerror = () => {
-        reject(new Error('Failed to load SVG'));
+        reject(new Error("Failed to load SVG"));
       };
 
-      const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
+      const svgBlob = new Blob([svgContent], { type: "image/svg+xml" });
       img.src = URL.createObjectURL(svgBlob);
     });
   }
@@ -496,7 +558,11 @@ export class CanvasRenderer {
   /**
    * Draw rich text with inline icons
    */
-  async drawRichText(segments: RichTextSegment[], fontSize: number, fontFamily: string = 'Arial'): Promise<void> {
+  async drawRichText(
+    segments: RichTextSegment[],
+    fontSize: number,
+    fontFamily: string = "Arial"
+  ): Promise<void> {
     this.clear();
 
     if (segments.length === 0) {
@@ -509,9 +575,9 @@ export class CanvasRenderer {
     this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
 
     // Set text properties
-    this.ctx.fillStyle = 'black';
+    this.ctx.fillStyle = "black";
     this.ctx.font = `${fontSize}px ${fontFamily}`;
-    this.ctx.textBaseline = 'alphabetic';
+    this.ctx.textBaseline = "alphabetic";
 
     // Measure total width and actual text bounds
     let totalWidth = 0;
@@ -520,16 +586,26 @@ export class CanvasRenderer {
     let maxDescent = 0;
 
     for (const segment of segments) {
-      if (segment.type === 'text') {
+      if (segment.type === "text") {
         const metrics = this.ctx.measureText(segment.content);
         const width = metrics.width;
         segmentWidths.push(width);
         totalWidth += width;
 
         // Track actual bounds
-        maxAscent = Math.max(maxAscent, metrics.actualBoundingBoxAscent || metrics.fontBoundingBoxAscent || fontSize * 0.8);
-        maxDescent = Math.max(maxDescent, metrics.actualBoundingBoxDescent || metrics.fontBoundingBoxDescent || fontSize * 0.2);
-      } else if (segment.type === 'icon') {
+        maxAscent = Math.max(
+          maxAscent,
+          metrics.actualBoundingBoxAscent ||
+            metrics.fontBoundingBoxAscent ||
+            fontSize * 0.8
+        );
+        maxDescent = Math.max(
+          maxDescent,
+          metrics.actualBoundingBoxDescent ||
+            metrics.fontBoundingBoxDescent ||
+            fontSize * 0.2
+        );
+      } else if (segment.type === "icon") {
         const iconSize = segment.size || fontSize;
         segmentWidths.push(iconSize);
         totalWidth += iconSize;
@@ -551,20 +627,30 @@ export class CanvasRenderer {
       const segment = segments[i];
       const segmentWidth = segmentWidths[i];
 
-      if (segment.type === 'text') {
+      if (segment.type === "text") {
         // Draw text at baseline
-        this.ctx.textAlign = 'left';
+        this.ctx.textAlign = "left";
         this.ctx.fillText(segment.content, currentX, verticalOffset);
-      } else if (segment.type === 'icon') {
+      } else if (segment.type === "icon") {
         // Draw icon aligned with text
         const iconSize = segment.size || fontSize;
         try {
           // Align icon baseline with text baseline
-          await this.drawInlineIcon(segment.iconDef.svg, currentX, verticalOffset - iconSize * 0.8, iconSize);
+          await this.drawInlineIcon(
+            segment.iconDef.svg,
+            currentX,
+            verticalOffset - iconSize * 0.8,
+            iconSize
+          );
         } catch (error) {
-          console.error('Failed to draw icon:', error);
+          console.error("Failed to draw icon:", error);
           // Draw placeholder if icon fails
-          this.ctx.fillRect(currentX, verticalOffset - iconSize * 0.8, iconSize, iconSize);
+          this.ctx.fillRect(
+            currentX,
+            verticalOffset - iconSize * 0.8,
+            iconSize,
+            iconSize
+          );
         }
       }
 
@@ -610,10 +696,10 @@ export class CanvasRenderer {
       };
 
       img.onerror = () => {
-        reject(new Error('Failed to load icon'));
+        reject(new Error("Failed to load icon"));
       };
 
-      const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
+      const svgBlob = new Blob([svgContent], { type: "image/svg+xml" });
       img.src = URL.createObjectURL(svgBlob);
     });
   }
@@ -628,7 +714,7 @@ export class CanvasRenderer {
     this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
 
     // Draw border
-    this.ctx.strokeStyle = 'black';
+    this.ctx.strokeStyle = "black";
     this.ctx.lineWidth = 2;
     this.ctx.strokeRect(
       -this.canvas.width / 2 + 5,
@@ -638,10 +724,10 @@ export class CanvasRenderer {
     );
 
     // Draw ruler marks every 10mm
-    this.ctx.font = '10px Arial';
-    this.ctx.fillStyle = 'black';
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
+    this.ctx.font = "10px Arial";
+    this.ctx.fillStyle = "black";
+    this.ctx.textAlign = "center";
+    this.ctx.textBaseline = "middle";
 
     const widthMm = this.dimensions.widthMm;
     for (let i = 0; i <= widthMm; i += 10) {
@@ -654,14 +740,10 @@ export class CanvasRenderer {
     }
 
     // Draw labels
-    this.ctx.font = 'bold 14px Arial';
-    this.ctx.fillText('TEST PATTERN', 0, -10);
-    this.ctx.font = '12px Arial';
-    this.ctx.fillText(
-      `${this.canvas.width}×${this.canvas.height}px`,
-      0,
-      10
-    );
+    this.ctx.font = "bold 14px Arial";
+    this.ctx.fillText("TEST PATTERN", 0, -10);
+    this.ctx.font = "12px Arial";
+    this.ctx.fillText(`${this.canvas.width}×${this.canvas.height}px`, 0, 10);
     this.ctx.fillText(
       `${this.dimensions.widthMm}×${this.dimensions.heightMm}mm @ ${this.dimensions.pixelsPerMm}px/mm`,
       0,

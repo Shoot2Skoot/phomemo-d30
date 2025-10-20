@@ -76,11 +76,16 @@ export function IconSearch({ onIconSelect }: IconSearchProps) {
                   ? iconName.split(':')[1]
                   : iconName;
 
+                // Embed library type as HTML comment in SVG for detection
+                const libraryTag = libraryType === 'fa' ? 'font-awesome' :
+                                   libraryType === 'lucide' ? 'lucide' : 'phosphor';
+                const taggedSvg = svgText.replace('<svg', `<!-- ${libraryTag} --><svg`);
+
                 console.log(`Loaded icon: ${fullIconId}`);
                 allResults.push({
                   name: displayName,
                   library: libraryType,
-                  svg: svgText
+                  svg: taggedSvg
                 });
               } catch (err) {
                 console.error(`Failed to fetch ${iconName}:`, err);
