@@ -66,6 +66,10 @@ function App() {
   const [mediaType, setMediaType] = useState<'gaps' | 'continuous' | 'marks'>('continuous');
   const [extraFeedMm, setExtraFeedMm] = useState(2);
 
+  // Accordion state
+  const [dimensionsExpanded, setDimensionsExpanded] = useState(false);
+  const [calibrationExpanded, setCalibrationExpanded] = useState(false);
+
   // Initialize canvas renderer and printer
   useEffect(() => {
     if (canvasRef.current && !rendererRef.current) {
@@ -440,8 +444,15 @@ function App() {
             </div>
 
             <div className="settings-panel">
-              <div className="settings-title">📐 Label Dimensions</div>
+              <div
+                className="settings-title"
+                onClick={() => setDimensionsExpanded(!dimensionsExpanded)}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span>{dimensionsExpanded ? '▼' : '▶'}</span> 📐 Label Dimensions
+              </div>
 
+              {dimensionsExpanded && (<>
               <div className="form-group">
                 <label>
                   <input
@@ -499,10 +510,17 @@ function App() {
                   max="100"
                 />
               </div>
+              </>)}
             </div>
 
             <div className="calibration-section">
-              <h3>🔧 Printer Calibration</h3>
+              <h3
+                onClick={() => setCalibrationExpanded(!calibrationExpanded)}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span>{calibrationExpanded ? '▼' : '▶'}</span> 🔧 Printer Calibration
+              </h3>
+              {calibrationExpanded && (<>
               <div className="form-group">
                 <label htmlFor="dpi-setting">
                   DPI / Scaling Factor: <span>{dimensions.pixelsPerMm}</span> px/mm
@@ -581,6 +599,7 @@ function App() {
                   This should match the D30's protocol better than M02.
                 </small>
               </div>
+              </>)}
             </div>
 
             <div className="button-group">
