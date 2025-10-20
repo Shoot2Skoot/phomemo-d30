@@ -2,9 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { PhomemoD30Printer, PrinterDebugInfo } from './lib/PhomemoD30Printer';
 import { CanvasRenderer, LabelDimensions } from './lib/CanvasRenderer';
 import { iconLibrary } from './lib/icons';
+import { RichTextEditor } from './components/RichTextEditor';
+import { FontSelector } from './components/FontSelector';
+import { IconSearch } from './components/IconSearch';
+import { RichTextSegment, textToSegments } from './lib/types';
+import { FontDefinition, SYSTEM_FONTS } from './lib/fonts';
 import './App.css';
 
-type Tab = 'text' | 'icons' | 'barcode' | 'qr' | 'image';
+type Tab = 'text' | 'texticon' | 'richtext' | 'icons' | 'barcode' | 'qr' | 'image';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -14,15 +19,37 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>('text');
   const [dimensions, setDimensions] = useState<LabelDimensions>({
     widthMm: 40,
-    heightMm: 12,
+    heightMm: 12, // Printable area (what gets sent to printer)
     pixelsPerMm: 8
   });
   const [autoWidth, setAutoWidth] = useState(true);
   const [minWidthMm, setMinWidthMm] = useState(20);
 
+  // Physical label is 15mm but only 12mm is printable
+  const labelHeightMm = 15; // Physical label height
+  const printableHeightMm = 12; // Printable area
+  const marginMm = 2; // Horizontal margins on each side
+
   // Text tab state
   const [text, setText] = useState('Hello World!');
-  const [fontSize, setFontSize] = useState(48);
+  const [fontSize, setFontSize] = useState(120);
+  const [selectedFont, setSelectedFont] = useState<FontDefinition>(
+    { name: 'Bebas Neue', family: 'Bebas Neue', source: 'google', category: 'display', variants: ['regular'] }
+  );
+
+  // Text + Icon tab state
+  const [textIconText, setTextIconText] = useState('Label');
+  const [textIconFont, setTextIconFont] = useState<FontDefinition>(
+    { name: 'Bebas Neue', family: 'Bebas Neue', source: 'google', category: 'display', variants: ['regular'] }
+  );
+  const [textIconFontSize, setTextIconFontSize] = useState(120);
+  const [textIconIconSvg, setTextIconIconSvg] = useState<string>(iconLibrary[0].svg);
+  const [textIconIconSize, setTextIconIconSize] = useState(120);
+
+  // Rich Text tab state
+  const [richTextSegments, setRichTextSegments] = useState<RichTextSegment[]>(
+    textToSegments('Hello World!')
+  );
 
   // Icons tab state
   const [selectedIcon, setSelectedIcon] = useState<typeof iconLibrary[0] | null>(null);
@@ -54,6 +81,14 @@ function App() {
       printerRef.current.onStatusChange = (status) => {
         setprinterConnected(status === 'connected' || status === 'printing');
       };
+
+      // Preload default font (Bebas Neue)
+      import('./lib/fonts').then(({ fontLoader }) => {
+        fontLoader.loadFont(selectedFont).catch(err => {
+          console.warn('Failed to preload default font:', err);
+        });
+      });
+
       updatePreview();
     }
   }, []);
@@ -61,7 +96,7 @@ function App() {
   // Update preview when inputs change
   useEffect(() => {
     updatePreview();
-  }, [activeTab, text, fontSize, selectedIcon, iconLabel, barcodeData, qrData, imageFile, dimensions, autoWidth]);
+  }, [activeTab, text, fontSize, selectedFont, textIconText, textIconFont, textIconFontSize, textIconIconSvg, textIconIconSize, richTextSegments, selectedIcon, iconLabel, barcodeData, qrData, imageFile, dimensions, autoWidth]);
 
   const calculateAutoWidth = (): number => {
     if (!canvasRef.current) return dimensions.widthMm;
@@ -73,10 +108,32 @@ function App() {
 
     switch (activeTab) {
       case 'text':
-        ctx.font = `${fontSize}px Arial`;
+        ctx.font = `${fontSize}px ${selectedFont.family}`;
         const lines = text.split('\n');
         contentWidthPx = Math.max(...lines.map(line => ctx.measureText(line).width));
         break;
+      case 'texticon': {
+        // Calculate width for text + icon
+        ctx.font = `${textIconFontSize}px ${textIconFont.family}`;
+        const textWidth = ctx.measureText(textIconText).width;
+        const iconWidth = textIconIconSize;
+        contentWidthPx = textWidth + iconWidth;
+        break;
+      }
+      case 'richtext': {
+        // Calculate width for rich text with inline icons
+        ctx.font = `${fontSize}px Arial`;
+        let totalWidth = 0;
+        for (const segment of richTextSegments) {
+          if (segment.type === 'text') {
+            totalWidth += ctx.measureText(segment.content).width;
+          } else if (segment.type === 'icon') {
+            totalWidth += segment.size || fontSize;
+          }
+        }
+        contentWidthPx = totalWidth;
+        break;
+      }
       case 'icons':
       case 'qr':
         // Icons and QR codes are roughly square, use height as width
@@ -92,8 +149,8 @@ function App() {
         break;
     }
 
-    // Add 20% padding and convert to mm
-    const widthMm = Math.ceil((contentWidthPx * 1.2) / dimensions.pixelsPerMm);
+    // Convert to mm (no padding)
+    const widthMm = Math.ceil(contentWidthPx / dimensions.pixelsPerMm);
 
     // Ensure minimum width
     return Math.max(widthMm, minWidthMm);
@@ -114,7 +171,23 @@ function App() {
     try {
       switch (activeTab) {
         case 'text':
-          rendererRef.current.drawText({ text, fontSize });
+          rendererRef.current.drawText({ text, fontSize, fontFamily: selectedFont.family });
+          break;
+        case 'texticon':
+          if (textIconIconSvg) {
+            await rendererRef.current.drawTextWithIcon(
+              textIconText,
+              textIconFontSize,
+              textIconFont.family,
+              textIconIconSvg,
+              textIconIconSize
+            );
+          }
+          break;
+        case 'richtext':
+          if (richTextSegments.length > 0) {
+            await rendererRef.current.drawRichText(richTextSegments, fontSize, selectedFont.family);
+          }
           break;
         case 'icons':
           if (selectedIcon) {
@@ -154,10 +227,13 @@ function App() {
       const printWidth = autoWidth ? calculateAutoWidth() : dimensions.widthMm;
 
       showStatus('Printing...', 'info');
+      // Note: dimensions are swapped because the printer rotates the canvas 90°
+      // Preview shows: width × height (horizontal)
+      // Printer receives: height × width (rotated vertical)
       const debug = await printerRef.current.print(
         canvasRef.current,
-        printWidth,
-        dimensions.heightMm,
+        dimensions.heightMm, // Swapped: preview height becomes print width
+        printWidth,          // Swapped: preview width becomes print height
         footerMode,
         mediaType,
         extraFeedMm
@@ -209,13 +285,15 @@ function App() {
         <div className="main-content">
           <div className="card">
             <div className="tabs">
-              {(['text', 'icons', 'barcode', 'qr', 'image'] as Tab[]).map((tab) => (
+              {(['text', 'texticon', 'richtext', 'icons', 'barcode', 'qr', 'image'] as Tab[]).map((tab) => (
                 <button
                   key={tab}
                   className={`tab-button ${activeTab === tab ? 'active' : ''}`}
                   onClick={() => setActiveTab(tab)}
                 >
                   {tab === 'text' && '📝 Text'}
+                  {tab === 'texticon' && '🏷️ Text + Icon'}
+                  {tab === 'richtext' && '✨ Rich Text'}
                   {tab === 'icons' && '🎨 Icons'}
                   {tab === 'barcode' && '📊 Barcode'}
                   {tab === 'qr' && '📱 QR Code'}
@@ -239,12 +317,115 @@ function App() {
                     />
                   </div>
                   <div className="form-group">
+                    <label>Font Family</label>
+                    <FontSelector
+                      selectedFont={selectedFont}
+                      onFontChange={setSelectedFont}
+                      fontSize={fontSize}
+                    />
+                  </div>
+                  <div className="form-group">
                     <label htmlFor="font-size">
                       Font Size: <span>{fontSize}px</span>
                     </label>
                     <input
                       type="range"
                       id="font-size"
+                      className="slider"
+                      min="12"
+                      max="120"
+                      value={fontSize}
+                      onChange={(e) => setFontSize(Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'texticon' && (
+                <div>
+                  <div className="form-group">
+                    <label htmlFor="texticon-input">Label Text</label>
+                    <input
+                      type="text"
+                      id="texticon-input"
+                      className="form-control"
+                      value={textIconText}
+                      onChange={(e) => setTextIconText(e.target.value)}
+                      placeholder="Enter text..."
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Font Family</label>
+                    <FontSelector
+                      selectedFont={textIconFont}
+                      onFontChange={setTextIconFont}
+                      fontSize={textIconFontSize}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="texticon-font-size">
+                      Font Size: <span>{textIconFontSize}px</span>
+                    </label>
+                    <input
+                      type="range"
+                      id="texticon-font-size"
+                      className="slider"
+                      min="12"
+                      max="120"
+                      value={textIconFontSize}
+                      onChange={(e) => setTextIconFontSize(Number(e.target.value))}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Search Icon</label>
+                    <IconSearch onIconSelect={setTextIconIconSvg} />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="texticon-icon-size">
+                      Icon Size: <span>{textIconIconSize}px</span>
+                    </label>
+                    <input
+                      type="range"
+                      id="texticon-icon-size"
+                      className="slider"
+                      min="20"
+                      max="150"
+                      value={textIconIconSize}
+                      onChange={(e) => setTextIconIconSize(Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'richtext' && (
+                <div>
+                  <div className="form-group">
+                    <label>Rich Text with Inline Icons</label>
+                    <RichTextEditor
+                      segments={richTextSegments}
+                      onChange={setRichTextSegments}
+                      fontSize={fontSize}
+                    />
+                    <small style={{ display: 'block', marginTop: '8px' }}>
+                      Create labels with mixed text and icons. Click "➕ Text" to add text segments,
+                      "🎨 Icon" to insert icons from multiple libraries.
+                    </small>
+                  </div>
+                  <div className="form-group">
+                    <label>Font Family</label>
+                    <FontSelector
+                      selectedFont={selectedFont}
+                      onFontChange={setSelectedFont}
+                      fontSize={fontSize}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="richtext-font-size">
+                      Font Size: <span>{fontSize}px</span>
+                    </label>
+                    <input
+                      type="range"
+                      id="richtext-font-size"
                       className="slider"
                       min="12"
                       max="120"
@@ -502,20 +683,33 @@ function App() {
           <div className="card preview-section">
             <div className="preview-header">
               <h2>Preview</h2>
-              <small>↻ Rotated 90°</small>
             </div>
             <div className="canvas-container">
-              <canvas ref={canvasRef} id="canvas"></canvas>
+              <div
+                className="label-wrapper"
+                style={{
+                  paddingTop: `${((labelHeightMm - printableHeightMm) / 2) * dimensions.pixelsPerMm}px`,
+                  paddingBottom: `${((labelHeightMm - printableHeightMm) / 2) * dimensions.pixelsPerMm}px`,
+                  paddingLeft: `${marginMm * dimensions.pixelsPerMm}px`,
+                  paddingRight: `${marginMm * dimensions.pixelsPerMm}px`
+                }}
+              >
+                <div className="printable-area">
+                  <canvas ref={canvasRef} id="canvas"></canvas>
+                </div>
+              </div>
             </div>
             <div className="preview-info">
-              <p>📍 Label feeds vertically through printer</p>
-              <p>📏 Pixels: {rendererRef.current?.getDimensionsInfo() || '-'}</p>
-              <p>📐 Size: {(() => {
+              <p>📏 Printable: {dimensions.widthMm}×{printableHeightMm}mm</p>
+              <p>📐 Label Size: {(() => {
                 const width = autoWidth ? calculateAutoWidth() : dimensions.widthMm;
                 const widthInches = (width / 25.4).toFixed(2);
-                const heightInches = (dimensions.heightMm / 25.4).toFixed(2);
-                return `${width}×${dimensions.heightMm}mm (${widthInches}×${heightInches}″)`;
+                const labelHeightInches = (labelHeightMm / 25.4).toFixed(2);
+                return `${width}×${labelHeightMm}mm (${widthInches}×${labelHeightInches}″)`;
               })()}</p>
+              <p style={{fontSize: '0.85rem', color: '#9333ea'}}>
+                💡 Purple border shows printable area, gray areas are margins
+              </p>
             </div>
           </div>
         </div>

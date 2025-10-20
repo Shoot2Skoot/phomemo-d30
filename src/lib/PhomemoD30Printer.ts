@@ -238,6 +238,26 @@ export class PhomemoD30Printer {
    * Convert canvas to 1-bit monochrome byte array
    * Each byte represents 8 horizontal pixels (MSB first)
    */
+  /**
+   * Rotate canvas 90° clockwise for printing
+   * The preview shows horizontal layout, but printer expects vertical (rotated) layout
+   */
+  private rotateCanvas(sourceCanvas: HTMLCanvasElement): HTMLCanvasElement {
+    // Create a new canvas with swapped dimensions
+    const rotatedCanvas = document.createElement('canvas');
+    rotatedCanvas.width = sourceCanvas.height;
+    rotatedCanvas.height = sourceCanvas.width;
+
+    const ctx = rotatedCanvas.getContext('2d')!;
+
+    // Translate and rotate 90° clockwise
+    ctx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(sourceCanvas, -sourceCanvas.width / 2, -sourceCanvas.height / 2);
+
+    return rotatedCanvas;
+  }
+
   private canvasToBytes(canvas: HTMLCanvasElement): Uint8Array {
     const ctx = canvas.getContext('2d')!;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
@@ -292,9 +312,12 @@ export class PhomemoD30Printer {
     this.setStatus('printing');
 
     try {
-      // Convert canvas to monochrome byte array
-      const imageData = this.canvasToBytes(canvas);
-      const bytesPerRow = Math.ceil(canvas.width / 8);
+      // Rotate canvas 90° for vertical printing
+      const rotatedCanvas = this.rotateCanvas(canvas);
+
+      // Convert rotated canvas to monochrome byte array
+      const imageData = this.canvasToBytes(rotatedCanvas);
+      const bytesPerRow = Math.ceil(rotatedCanvas.width / 8);
 
       // Generate debug info
       const header = this.getHeaderData(mediaType);
@@ -328,12 +351,12 @@ export class PhomemoD30Printer {
       }
 
       const debugInfo: PrinterDebugInfo = {
-        canvasWidth: canvas.width,
-        canvasHeight: canvas.height,
+        canvasWidth: rotatedCanvas.width,
+        canvasHeight: rotatedCanvas.height,
         bytesPerRow: bytesPerRow,
         totalBytes: imageData.length,
-        widthMm: widthMm,
-        heightMm: heightMm,
+        widthMm: widthMm, // Already swapped by caller
+        heightMm: heightMm, // Already swapped by caller
         pixelsPerMm: this.pixelsPerMm,
         headerBytes: Array.from(header).map(b => `0x${b.toString(16).padStart(2, '0')}`).join(' '),
         footerBytes: Array.from(footer).map(b => `0x${b.toString(16).padStart(2, '0')}`).join(' ')
@@ -347,7 +370,7 @@ export class PhomemoD30Printer {
 
       // 2. Send image data in blocks (max 255 lines per block)
       const MAX_LINES_PER_BLOCK = 255;
-      let remainingLines = canvas.height;
+      let remainingLines = rotatedCanvas.height;
       let currentLine = 0;
 
       while (remainingLines > 0) {
@@ -368,7 +391,7 @@ export class PhomemoD30Printer {
           await this.characteristic.writeValueWithResponse(chunk);
 
           // Progress callback
-          const totalProgress = Math.round(((currentLine + (i / bytesPerRow)) / canvas.height) * 100);
+          const totalProgress = Math.round(((currentLine + (i / bytesPerRow)) / rotatedCanvas.height) * 100);
           console.log(`Printing... ${totalProgress}%`);
         }
 
