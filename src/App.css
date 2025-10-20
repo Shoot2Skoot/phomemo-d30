@@ -127,7 +127,7 @@ body {
   padding: 16px;
   animation: none;
   min-width: 0;
-  order: 3;
+  order: 10;
 }
 
 @keyframes fadeIn {
@@ -445,6 +445,7 @@ select.form-control option {
   padding: 16px;
   margin-bottom: 16px;
   margin-top: 16px;
+  order: 4;
 }
 
 .settings-title {
@@ -478,6 +479,7 @@ select.form-control option {
   border-right: none;
   padding: 16px;
   margin-bottom: 16px;
+  order: 5;
 }
 
 .calibration-section h3 {
