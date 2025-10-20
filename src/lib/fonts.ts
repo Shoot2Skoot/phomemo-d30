@@ -109,38 +109,75 @@ export class FontLoader {
    * Load a font from Google Fonts or Bunny Fonts
    */
   async loadFont(font: FontDefinition): Promise<void> {
+    console.log(`[FontLoader] Starting to load font: ${font.name}`, font);
+
     if (font.source === 'system') {
-      // System fonts don't need loading
+      console.log(`[FontLoader] ${font.name} is a system font, no loading needed`);
       return;
     }
 
     const fontKey = `${this.fontSource}-${font.family}`;
     if (this.loadedFonts.has(fontKey)) {
-      // Already loaded
+      console.log(`[FontLoader] ${font.name} already loaded with key: ${fontKey}`);
       return;
     }
 
     try {
-      // Create a link element to load the font
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = this.getApiUrl(font.family, font.variants);
+      const url = this.getApiUrl(font.family, font.variants);
+      console.log(`[FontLoader] Loading ${font.name} from URL: ${url}`);
 
-      // Wait for the font to load
-      await new Promise<void>((resolve, reject) => {
-        link.onload = () => resolve();
-        link.onerror = () => reject(new Error(`Failed to load font: ${font.name}`));
-        document.head.appendChild(link);
-      });
+      // Try using a style element with @import instead
+      const style = document.createElement('style');
+      style.textContent = `@import url('${url}');`;
+
+      // Append the style element
+      document.head.appendChild(style);
+      console.log(`[FontLoader] Style element with @import appended to head for ${font.name}`);
+
+      // Wait a bit for the import to process
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      console.log(`[FontLoader] Starting Font Loading API check for ${font.name}`);
 
       // Use the Font Loading API to ensure the font is ready
       if ('fonts' in document) {
-        await document.fonts.load(`16px "${font.family}"`);
+        try {
+          // Try to load the font with different weights
+          const weights = font.variants?.map(v => v === 'regular' ? '400' : v) || ['400'];
+          console.log(`[FontLoader] Attempting to load weights for ${font.name}:`, weights);
+
+          const loadPromises = weights.map(weight => {
+            const fontString = `${weight} 16px "${font.family}"`;
+            console.log(`[FontLoader] Loading font string: ${fontString}`);
+            return document.fonts.load(fontString)
+              .then(() => {
+                console.log(`[FontLoader] Successfully loaded weight ${weight} for ${font.name}`);
+                return true;
+              })
+              .catch(err => {
+                console.error(`[FontLoader] Failed to load weight ${weight} for ${font.name}:`, err);
+                return false;
+              });
+          });
+
+          const results = await Promise.all(loadPromises);
+          const anySuccess = results.some(r => r);
+
+          if (!anySuccess) {
+            console.warn(`[FontLoader] No weights loaded successfully for ${font.name}, but continuing anyway`);
+          }
+        } catch (fontLoadError) {
+          console.warn(`[FontLoader] Font Loading API failed for ${font.name}:`, fontLoadError);
+          // Continue anyway - the stylesheet is loaded, even if the Font Loading API failed
+        }
+      } else {
+        console.warn(`[FontLoader] Font Loading API not available in this browser`);
       }
 
       this.loadedFonts.add(fontKey);
+      console.log(`[FontLoader] Successfully loaded ${font.name}, added to loadedFonts with key: ${fontKey}`);
     } catch (error) {
-      console.error(`Error loading font ${font.name}:`, error);
+      console.error(`[FontLoader] Error loading font ${font.name}:`, error);
       throw error;
     }
   }

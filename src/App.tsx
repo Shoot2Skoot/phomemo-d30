@@ -43,6 +43,10 @@ function App() {
   const [textIconFontSize, setTextIconFontSize] = useState(120);
   const [textIconIconSvg, setTextIconIconSvg] = useState<string>('<!-- font-awesome --><svg xmlns="http://www.w3.org/2000/svg" width="1.13em" height="1em" viewBox="0 0 576 512"><path fill="currentColor" d="M280.37 148.26L96 300.11V464a16 16 0 0 0 16 16l112.06-.29a16 16 0 0 0 15.92-16V368a16 16 0 0 1 16-16h64a16 16 0 0 1 16 16v95.64a16 16 0 0 0 16 16.05L464 480a16 16 0 0 0 16-16V300L295.67 148.26a12.19 12.19 0 0 0-15.3 0M571.6 251.47L488 182.56V44.05a12 12 0 0 0-12-12h-56a12 12 0 0 0-12 12v72.61L318.47 43a48 48 0 0 0-61 0L4.34 251.47a12 12 0 0 0-1.6 16.9l25.5 31A12 12 0 0 0 45.15 301l235.22-193.74a12.19 12.19 0 0 1 15.3 0L530.9 301a12 12 0 0 0 16.9-1.6l25.5-31a12 12 0 0 0-1.7-16.93"/></svg>');
   const [textIconIconSize, setTextIconIconSize] = useState(120);
+  const [textIconAllCaps, setTextIconAllCaps] = useState(false);
+  const [textIconSmallCaps, setTextIconSmallCaps] = useState(false);
+  const [textIconItalic, setTextIconItalic] = useState(false);
+  const [textIconFontWeight, setTextIconFontWeight] = useState(400);
 
   // Icons tab state
   const [selectedIcon, setSelectedIcon] = useState<typeof iconLibrary[0] | null>(null);
@@ -69,6 +73,7 @@ function App() {
   // Accordion state
   const [dimensionsExpanded, setDimensionsExpanded] = useState(false);
   const [calibrationExpanded, setCalibrationExpanded] = useState(false);
+  const [textIconStyleExpanded, setTextIconStyleExpanded] = useState(false);
 
   // Initialize canvas renderer and printer
   useEffect(() => {
@@ -93,7 +98,7 @@ function App() {
   // Update preview when inputs change
   useEffect(() => {
     updatePreview();
-  }, [activeTab, text, fontSize, selectedFont, textIconText, textIconFont, textIconFontSize, textIconIconSvg, textIconIconSize, selectedIcon, iconLabel, barcodeData, qrData, imageFile, dimensions, autoWidth]);
+  }, [activeTab, text, fontSize, selectedFont, textIconText, textIconFont, textIconFontSize, textIconIconSvg, textIconIconSize, textIconAllCaps, textIconSmallCaps, textIconItalic, textIconFontWeight, selectedIcon, iconLabel, barcodeData, qrData, imageFile, dimensions, autoWidth]);
 
   const calculateAutoWidth = (): number => {
     if (!canvasRef.current) return dimensions.widthMm;
@@ -111,8 +116,11 @@ function App() {
         break;
       case 'texticon': {
         // Calculate width for text + icon
-        ctx.font = `${textIconFontSize}px ${textIconFont.family}`;
-        const textWidth = ctx.measureText(textIconText).width;
+        const fontStyle = textIconItalic ? 'italic' : 'normal';
+        const fontVariant = textIconSmallCaps ? 'small-caps' : 'normal';
+        ctx.font = `${fontStyle} ${fontVariant} ${textIconFontWeight} ${textIconFontSize}px ${textIconFont.family}`;
+        const displayText = textIconAllCaps ? textIconText.toUpperCase() : textIconText;
+        const textWidth = ctx.measureText(displayText).width;
         const iconWidth = textIconIconSize;
         contentWidthPx = textWidth + iconWidth;
         break;
@@ -142,6 +150,19 @@ function App() {
   const updatePreview = async () => {
     if (!rendererRef.current) return;
 
+    // Ensure fonts are loaded before rendering
+    try {
+      const { fontLoader } = await import('./lib/fonts');
+      if (activeTab === 'text' && selectedFont.source !== 'system' && !fontLoader.isLoaded(selectedFont)) {
+        await fontLoader.loadFont(selectedFont);
+      }
+      if (activeTab === 'texticon' && textIconFont.source !== 'system' && !fontLoader.isLoaded(textIconFont)) {
+        await fontLoader.loadFont(textIconFont);
+      }
+    } catch (error) {
+      console.error('Failed to load font:', error);
+    }
+
     // Calculate auto width if enabled
     let effectiveDimensions = dimensions;
     if (autoWidth) {
@@ -163,7 +184,13 @@ function App() {
               textIconFontSize,
               textIconFont.family,
               textIconIconSvg,
-              textIconIconSize
+              textIconIconSize,
+              {
+                allCaps: textIconAllCaps,
+                smallCaps: textIconSmallCaps,
+                italic: textIconItalic,
+                fontWeight: textIconFontWeight
+              }
             );
           }
           break;
@@ -258,24 +285,24 @@ function App() {
         </header>
 
         <div className="main-content">
-          <div className="card">
-            <div className="tabs">
-              {(['text', 'texticon', 'icons', 'barcode', 'qr', 'image'] as Tab[]).map((tab) => (
-                <button
-                  key={tab}
-                  className={`tab-button ${activeTab === tab ? 'active' : ''}`}
-                  onClick={() => setActiveTab(tab)}
-                >
-                  {tab === 'text' && '📝 Text'}
-                  {tab === 'texticon' && '🏷️ Text + Icon'}
-                  {tab === 'icons' && '🎨 Icons'}
-                  {tab === 'barcode' && '📊 Barcode'}
-                  {tab === 'qr' && '📱 QR Code'}
-                  {tab === 'image' && '🖼️ Image'}
-                </button>
-              ))}
-            </div>
+          <div className="tabs">
+            {(['text', 'texticon', 'icons', 'barcode', 'qr', 'image'] as Tab[]).map((tab) => (
+              <button
+                key={tab}
+                className={`tab-button ${activeTab === tab ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab === 'text' && '📝 Text'}
+                {tab === 'texticon' && '🏷️ Text + Icon'}
+                {tab === 'icons' && '🎨 Icons'}
+                {tab === 'barcode' && '📊 Barcode'}
+                {tab === 'qr' && '📱 QR Code'}
+                {tab === 'image' && '🖼️ Image'}
+              </button>
+            ))}
+          </div>
 
+          <div className="card">
             <div className="tab-content">
               {activeTab === 'text' && (
                 <div>
@@ -328,42 +355,108 @@ function App() {
                       placeholder="Enter text..."
                     />
                   </div>
-                  <div className="form-group">
-                    <label>Font Family</label>
-                    <FontSelector
-                      selectedFont={textIconFont}
-                      onFontChange={setTextIconFont}
-                      fontSize={textIconFontSize}
-                    />
+
+                  <div className={`settings-panel ${!textIconStyleExpanded ? 'collapsed' : ''}`}>
+                    <div
+                      className="settings-title"
+                      onClick={() => setTextIconStyleExpanded(!textIconStyleExpanded)}
+                      style={{ cursor: 'pointer', userSelect: 'none' }}
+                    >
+                      <span>{textIconStyleExpanded ? '▼' : '▶'}</span> 🎨 Text Style
+                    </div>
+                    {textIconStyleExpanded && (
+                      <>
+                        <div className="form-group">
+                          <label>Font Family</label>
+                          <FontSelector
+                            selectedFont={textIconFont}
+                            onFontChange={setTextIconFont}
+                            fontSize={textIconFontSize}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="texticon-font-size">
+                            Font Size: <span>{textIconFontSize}px</span>
+                          </label>
+                          <input
+                            type="range"
+                            id="texticon-font-size"
+                            className="slider"
+                            min="12"
+                            max="120"
+                            value={textIconFontSize}
+                            onChange={(e) => setTextIconFontSize(Number(e.target.value))}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="texticon-icon-size">
+                            Icon Size: <span>{textIconIconSize}px</span>
+                          </label>
+                          <input
+                            type="range"
+                            id="texticon-icon-size"
+                            className="slider"
+                            min="20"
+                            max="150"
+                            value={textIconIconSize}
+                            onChange={(e) => setTextIconIconSize(Number(e.target.value))}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="texticon-font-weight">
+                            Font Weight: <span>{textIconFontWeight}</span>
+                          </label>
+                          <input
+                            type="range"
+                            id="texticon-font-weight"
+                            className="slider"
+                            min="100"
+                            max="900"
+                            step="100"
+                            value={textIconFontWeight}
+                            onChange={(e) => setTextIconFontWeight(Number(e.target.value))}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
+                            <input
+                              type="checkbox"
+                              checked={textIconItalic}
+                              onChange={(e) => setTextIconItalic(e.target.checked)}
+                            />
+                            Italic
+                          </label>
+                        </div>
+                        <div className="form-group">
+                          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
+                            <input
+                              type="checkbox"
+                              checked={textIconAllCaps}
+                              onChange={(e) => {
+                                setTextIconAllCaps(e.target.checked);
+                                if (e.target.checked) setTextIconSmallCaps(false);
+                              }}
+                            />
+                            All Caps
+                          </label>
+                        </div>
+                        <div className="form-group">
+                          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
+                            <input
+                              type="checkbox"
+                              checked={textIconSmallCaps}
+                              onChange={(e) => {
+                                setTextIconSmallCaps(e.target.checked);
+                                if (e.target.checked) setTextIconAllCaps(false);
+                              }}
+                            />
+                            Small Caps
+                          </label>
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="texticon-font-size">
-                      Font Size: <span>{textIconFontSize}px</span>
-                    </label>
-                    <input
-                      type="range"
-                      id="texticon-font-size"
-                      className="slider"
-                      min="12"
-                      max="120"
-                      value={textIconFontSize}
-                      onChange={(e) => setTextIconFontSize(Number(e.target.value))}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="texticon-icon-size">
-                      Icon Size: <span>{textIconIconSize}px</span>
-                    </label>
-                    <input
-                      type="range"
-                      id="texticon-icon-size"
-                      className="slider"
-                      min="20"
-                      max="150"
-                      value={textIconIconSize}
-                      onChange={(e) => setTextIconIconSize(Number(e.target.value))}
-                    />
-                  </div>
+
                   <div className="form-group">
                     <label>Search Icon</label>
                     <IconSearch onIconSelect={setTextIconIconSvg} />

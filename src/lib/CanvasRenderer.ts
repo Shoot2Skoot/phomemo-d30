@@ -384,7 +384,13 @@ export class CanvasRenderer {
     fontSize: number,
     fontFamily: string,
     iconSvg: string,
-    iconSize: number
+    iconSize: number,
+    options?: {
+      allCaps?: boolean;
+      smallCaps?: boolean;
+      italic?: boolean;
+      fontWeight?: number;
+    }
   ): Promise<void> {
     this.clear();
 
@@ -397,16 +403,28 @@ export class CanvasRenderer {
     // Center positioning
     this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
 
+    // Apply text transformations
+    let displayText = text;
+    if (options?.allCaps) {
+      displayText = text.toUpperCase();
+    }
+
     // Set text properties
     this.ctx.fillStyle = "black";
-    this.ctx.font = `${fontSize}px ${fontFamily}`;
+
+    // Build font string with weight, style, and variant
+    const fontWeight = options?.fontWeight || 400;
+    const fontStyle = options?.italic ? 'italic' : 'normal';
+    const fontVariant = options?.smallCaps ? 'small-caps' : 'normal';
+
+    this.ctx.font = `${fontStyle} ${fontVariant} ${fontWeight} ${fontSize}px ${fontFamily}`;
     this.ctx.textBaseline = "alphabetic";
 
     // Debug: log the font being used
     console.log("Text+Icon font:", this.ctx.font);
 
     // Measure text (same logic as drawText method)
-    const textMetrics = this.ctx.measureText(text);
+    const textMetrics = this.ctx.measureText(displayText);
     const textWidth = textMetrics.width;
 
     // Use actualBoundingBox metrics (can be 0), fallback to fontBoundingBox only if undefined
@@ -474,7 +492,7 @@ export class CanvasRenderer {
 
       // Draw text (using exact same Y position as drawText for single line)
       this.ctx.textAlign = "left";
-      this.ctx.fillText(text, startX, verticalOffset);
+      this.ctx.fillText(displayText, startX, verticalOffset);
 
       // Draw icon after text with gap, centered vertically (independent of text)
       const iconX = startX + textWidth + gap;
@@ -491,7 +509,7 @@ export class CanvasRenderer {
       // Draw text only if icon fails, centered without icon
       const startX = -textWidth / 2;
       this.ctx.textAlign = "left";
-      this.ctx.fillText(text, startX, verticalOffset);
+      this.ctx.fillText(displayText, startX, verticalOffset);
     }
 
     this.ctx.restore();

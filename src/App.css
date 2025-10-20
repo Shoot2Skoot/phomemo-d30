@@ -87,6 +87,9 @@ body {
   gap: 0;
   border-bottom: 1px solid #222;
   background: #0d0d0d;
+  width: 100%;
+  min-width: 0;
+  order: -2;
 }
 
 .tab-button {
@@ -453,6 +456,17 @@ select.form-control option {
   padding: 16px;
   margin-bottom: 16px;
   margin-top: 16px;
+}
+
+.settings-panel.collapsed {
+  padding: 8px;
+  margin-bottom: 16px;
+  margin-top: 0;
+}
+
+.settings-panel.collapsed .settings-title {
+  margin-bottom: 0;
+  padding: 0;
 }
 
 .settings-title {
